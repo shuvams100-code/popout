@@ -1,36 +1,35 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
+import { Fredoka, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { createClient } from "@/lib/supabase/server";
-import { signInWithGoogle, signOut } from "./auth/actions";
+
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "Popout",
+  title: { default: "Popout", template: "%s · Popout" },
   description: "Find something to do. Find someone to do it with.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export const viewport: Viewport = {
+  themeColor: "#060607",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col bg-white text-neutral-900">
-        <header className="flex items-center justify-between border-b px-4 py-2">
-          <Link href="/" className="font-medium">Popout</Link>
-          {user ? (
-            <div className="flex items-center gap-3 text-sm">
-              <Link href="/profile">Profile</Link>
-              <form action={signOut}><button type="submit">Sign out</button></form>
-            </div>
-          ) : (
-            <form action={signInWithGoogle.bind(null, "/")}>
-              <button type="submit" className="rounded border px-3 py-1 text-sm">Sign in with Google</button>
-            </form>
-          )}
-        </header>
-        {children}
-      </body>
+    <html lang="en" className={`${fredoka.variable} ${jakarta.variable} h-full`}>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }
