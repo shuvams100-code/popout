@@ -8,7 +8,7 @@ export default function SiteHeader({ back = "/" }: { back?: string }) {
         ← Map
       </Link>
       <Link href="/" className="wiggle">
-        <Wordmark size={22} />
+        <Wordmark size={19} />
       </Link>
       <span className="w-12" />
     </header>

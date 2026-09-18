@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 export type Place = { name: string; detail: string; lat: number; lng: number };
 
-type Props = { near: { lat: number; lng: number }; onPick: (p: Place) => void; className?: string };
+type Props = { near: { lat: number; lng: number }; onPick: (p: Place) => void; className?: string; autoFocus?: boolean };
 
 // ponytail: Photon (komoot) is free, CORS-open, no key. Swap the URL if it rate-limits us.
 async function geocode(q: string, near: { lat: number; lng: number }): Promise<Place[]> {
@@ -20,7 +20,7 @@ async function geocode(q: string, near: { lat: number; lng: number }): Promise<P
   });
 }
 
-export default function SearchBar({ near, onPick, className = "" }: Props) {
+export default function SearchBar({ near, onPick, className = "", autoFocus }: Props) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Place[]>([]);
   const [open, setOpen] = useState(false);
@@ -31,10 +31,7 @@ export default function SearchBar({ near, onPick, className = "" }: Props) {
 
   // Debounced suggestions
   useEffect(() => {
-    if (q.trim().length < 2) {
-      setItems([]);
-      return;
-    }
+    if (q.trim().length < 2) return;
     const id = ++seq.current;
     const t = setTimeout(async () => {
       const res = await geocode(q, near).catch(() => []);
@@ -84,17 +81,27 @@ export default function SearchBar({ near, onPick, className = "" }: Props) {
         </svg>
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (e.target.value.trim().length < 2) setItems([]);
+          }}
           onFocus={() => items.length && setOpen(true)}
           onKeyDown={(e) => {
             if (!open || !items.length) return;
-            if (e.key === "ArrowDown") (e.preventDefault(), setHi((h) => (h + 1) % items.length));
-            if (e.key === "ArrowUp") (e.preventDefault(), setHi((h) => (h - 1 + items.length) % items.length));
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHi((h) => (h + 1) % items.length);
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHi((h) => (h - 1 + items.length) % items.length);
+            }
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder="Search a place — Koramangala, Church Street…"
           aria-label="Search location"
           autoComplete="off"
+          autoFocus={autoFocus}
           className="min-w-0 flex-1 bg-transparent py-2 text-[14px] text-cream placeholder:text-cream-3 focus:outline-none"
         />
         {q && (
