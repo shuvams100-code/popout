@@ -3,6 +3,8 @@ import SiteHeader from "@/components/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { saveProfile } from "./actions";
+import Select from "@/components/select";
+import { Avatar } from "@/components/brand";
 
 const ERRORS: Record<string, string> = {
   age: "Age must be between 18 and 99.",
@@ -10,7 +12,7 @@ const ERRORS: Record<string, string> = {
   save: "Couldn't save. Try again.",
 };
 
-const field = "w-full rounded-xl border border-line bg-ink-2 px-3 py-2.5 text-[15px] text-cream outline-none transition focus:border-line-strong";
+const field = "glass w-full rounded-[14px] px-3.5 py-3 text-[15px] text-cream placeholder:text-cream-3 outline-none focus:border-white/30";
 const label = "flex flex-col gap-1.5 text-[12px] uppercase tracking-[0.12em] text-cream-3";
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
@@ -35,13 +37,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <form action={saveProfile} className="reveal mt-6 flex flex-col gap-4" style={{ animationDelay: "120ms" }}>
           <input type="hidden" name="next" value={next} />
           <div className="flex items-center gap-4">
-            {p?.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.photo_url} alt="" className="h-16 w-16 rounded-full object-cover" />
-            ) : (
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-pop-soft font-display text-[22px] text-pop">{p?.name?.[0] ?? "?"}</span>
-            )}
-            <p className="text-[13px] text-cream-3">Photo comes from Google.</p>
+            <span className="glass grid h-20 w-20 place-items-center rounded-full">
+              <Avatar seed={user.id} size={64} />
+            </span>
+            <p className="text-[13px] text-cream-3">Your avatar. One of a kind, no photo needed.</p>
           </div>
           <label className={label}>
             Name
@@ -52,15 +51,20 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
               Age
               <input name="age" type="number" min={18} max={99} defaultValue={p?.age ?? ""} required className={field} />
             </label>
-            <label className={label}>
+            <div className={label}>
               Gender
-              <select name="gender" defaultValue={p?.gender ?? ""} required className={field}>
-                <option value="" disabled>Select</option>
-                <option value="woman">Woman</option>
-                <option value="man">Man</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
+              <Select
+                name="gender"
+                defaultValue={p?.gender ?? ""}
+                required
+                className={field}
+                options={[
+                  { value: "man", label: "Male" },
+                  { value: "woman", label: "Female" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
+            </div>
           </div>
           <label className={label}>
             Area

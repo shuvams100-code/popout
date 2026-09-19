@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Pin } from "@/lib/types";
 import { when, km, distance } from "@/lib/format";
-import { Mascot } from "./brand";
+import { Mascot, Avatar } from "./brand";
 
 type Props = {
   pin: Pin;
@@ -41,8 +41,8 @@ export default function PinCard({ pin, origin, active, onFocus, wide }: Props) {
       ].join(" ")}
     >
       <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em]">
-        <span className={`inline-flex items-center gap-1.5 ${isPopout ? "text-pop" : "text-ice"}`}>
-          {isPopout && <Mascot size={14} glow={false} />}
+        <span className={`inline-flex items-center gap-1.5 ${isPopout ? "text-pop" : "text-tix"}`}>
+          {isPopout ? <Mascot size={14} glow={false} /> : <Mascot size={14} glow={false} tone="tix" />}
           {isPopout ? (pin.eventId ? "Crew" : "Popout") : "Event"}
         </span>
         <span className="text-cream-3">{dist}</span>
@@ -59,17 +59,12 @@ export default function PinCard({ pin, origin, active, onFocus, wide }: Props) {
             <span className={full ? "text-cream-3" : "text-cream-2"}>{full ? "Full" : `${pin.max! - pin.filled!} left`}</span>
           </span>
         ) : (
-          <span className="font-semibold text-ice">{pin.price ?? "Free"}</span>
+          <span className="font-semibold text-tix">{pin.price ?? "Free"}</span>
         )}
       </div>
       {isPopout && pin.host && (
         <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-cream-2">
-          {pin.host.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pin.host.photo} alt="" className="h-5 w-5 rounded-full object-cover" />
-          ) : (
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-pop-soft text-[10px] font-bold text-pop">{pin.host.name[0]}</span>
-          )}
+          <Avatar seed={pin.host.id} size={20} />
           <span>{pin.host.name.split(" ")[0]} is hosting</span>
         </div>
       )}

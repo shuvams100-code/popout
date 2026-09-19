@@ -14,6 +14,8 @@ maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 // Inline mascot markup for markers (no React inside MapLibre markers)
 const MASCOT = `<svg width="30" height="30" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D4FF3F"/><stop offset=".55" stop-color="#5CFF7A"/><stop offset="1" stop-color="#12E9A8"/></linearGradient></defs><g fill="url(#pg)"><rect x="44" y="4" width="12" height="26" rx="6"/><rect x="44" y="4" width="12" height="24" rx="6" transform="rotate(-38 50 50)"/><rect x="44" y="4" width="12" height="24" rx="6" transform="rotate(38 50 50)"/><circle cx="50" cy="63" r="31"/></g><g fill="#0b0d12"><rect x="37" y="54" width="9" height="16" rx="4.5"/><rect x="54" y="54" width="9" height="16" rx="4.5"/></g></svg>`;
 
+const MASCOT_TIX = MASCOT.replace('id="pg"', 'id="tg"').replace("url(#pg)", "url(#tg)").replace("#D4FF3F", "#FFCF4A").replace("#5CFF7A", "#FFB03B").replace("#12E9A8", "#FF6B4A");
+
 export type Anchor = { x: number; y: number };
 
 type Props = {
@@ -82,9 +84,10 @@ export default function MapCanvas({ pins, center, activeId, onSelect, onAnchor, 
       center: [center.lng, center.lat],
       zoom: 13.2,
       pitch: 30,
-      attributionControl: { compact: true },
+      attributionControl: false,
       fadeDuration: 0,
     });
+    m.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
     const labels = () => box.current?.classList.toggle("labels-on", m.getZoom() >= 13.5);
     m.on("zoom", labels);
     m.once("load", () => {
@@ -134,10 +137,8 @@ export default function MapCanvas({ pins, center, activeId, onSelect, onAnchor, 
       if (!mk) {
         const el = document.createElement("div");
         el.className = `pin ${p.kind === "event" ? "pin-event" : "pin-popout"}`;
-        el.innerHTML =
-          p.kind === "popout"
-            ? `<span class="pin-halo"></span>${MASCOT}<span class="pin-label">${pinLabel(p)}</span>`
-            : `<span class="pin-core"></span><span class="pin-label">${pinLabel(p)}</span>`;
+        // MapLibre writes an inline transform on `el` every frame, so all our own transforms live on .pin-body
+        el.innerHTML = `<span class="pin-body">${p.kind === "popout" ? `<span class="pin-halo"></span>${MASCOT}` : MASCOT_TIX}<span class="pin-label">${pinLabel(p)}</span></span>`;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           cb.current.onSelect(cb.current.activeId === p.id ? null : p.id);

@@ -11,7 +11,7 @@ export async function fetchPins(): Promise<Pin[]> {
   const [{ data: popouts }, { data: events }] = await Promise.all([
     supabase
       .from("popouts")
-      .select("id,title,venue,lat,lng,starts_at,max_people,event_id,host:profiles!host_id(name,photo_url),members:popout_members(status)")
+      .select("id,title,venue,lat,lng,starts_at,max_people,event_id,host:profiles!host_id(id,name),members:popout_members(status)")
       .eq("status", "open")
       .gte("starts_at", from)
       .order("starts_at"),
@@ -29,7 +29,7 @@ export async function fetchPins(): Promise<Pin[]> {
       startsAt: p.starts_at,
       max: p.max_people,
       filled: (p.members as { status: string }[]).filter((m) => m.status !== "dropped").length,
-      host: { name: (p.host as unknown as { name: string; photo_url: string | null }).name, photo: (p.host as unknown as { photo_url: string | null }).photo_url },
+      host: { id: (p.host as unknown as { id: string }).id, name: (p.host as unknown as { name: string }).name },
       eventId: p.event_id,
     })),
     ...(events ?? []).map((e) => ({
@@ -46,5 +46,5 @@ export async function fetchPins(): Promise<Pin[]> {
 
   // ponytail: widen the window only when nothing is soon; a hard cap avoids a wall of pins
   const soon = pins.filter((p) => p.startsAt <= to);
-  return (soon.length ? soon : pins).slice(0, 60);
+  return (soon.length ? soon : pins).slice(0, 300);
 }

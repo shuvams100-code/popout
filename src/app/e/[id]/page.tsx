@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "@/components/site-header";
 import { Seats } from "@/components/pin-card";
+import { Avatar } from "@/components/brand";
 import { whenLong } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,7 @@ async function load(id: string) {
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("popouts")
-      .select("id,title,max_people,starts_at,host:profiles!host_id(name,photo_url),members:popout_members(status)")
+      .select("id,title,max_people,starts_at,host:profiles!host_id(id,name),members:popout_members(status)")
       .eq("event_id", id)
       .eq("status", "open")
       .order("starts_at"),
@@ -39,7 +40,7 @@ export default async function EventPage({ params }: Params) {
     <main className="min-h-dvh bg-ink">
       <SiteHeader />
       <article className="mx-auto max-w-md px-5 pb-32 pt-6">
-        <p className="reveal mb-3 text-[11px] uppercase tracking-[0.14em] text-ice">Event{event.organizer ? ` · ${event.organizer}` : ""}</p>
+        <p className="reveal mb-3 text-[11px] uppercase tracking-[0.14em] text-tix">Event{event.organizer ? ` · ${event.organizer}` : ""}</p>
         <h1 className="reveal font-display text-[36px] leading-[1.02] text-cream" style={{ fontWeight: 700, animationDelay: "60ms" }}>
           {event.title}
         </h1>
@@ -72,17 +73,14 @@ export default async function EventPage({ params }: Params) {
 
           <ul className="mt-4 flex flex-col gap-3">
             {crews.map((c) => {
-              const host = c.host as unknown as { name: string; photo_url: string | null };
+              const host = c.host as unknown as { id: string; name: string };
               const filled = (c.members as { status: string }[]).filter((m) => m.status !== "dropped").length;
               return (
                 <li key={c.id}>
                   <Link href={`/p/${c.id}`} className="flex items-center gap-3 rounded-[22px] border border-line bg-ink-2 p-3 transition hover:border-line-strong">
-                    {host.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={host.photo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                    ) : (
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-pop-soft text-pop">{host.name[0]}</span>
-                    )}
+                    <span className="glass grid h-10 w-10 place-items-center rounded-full">
+                      <Avatar seed={host.id} size={30} />
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] text-cream">{host.name.split(" ")[0]}&apos;s crew</p>
                       <p className="text-[13px] text-cream-2">{whenLong(c.starts_at)}</p>

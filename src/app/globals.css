@@ -14,8 +14,10 @@
   --mint: #12e9a8;
   --pop: #5cff7a;
   --pop-soft: rgba(92, 255, 122, 0.14);
-  --ice: #ededf5;
-  --ice-soft: rgba(237, 237, 245, 0.12);
+  --tix: #ffb03b;
+  --tix-2: #ff6b4a;
+  --tix-soft: rgba(255, 176, 59, 0.16);
+  --grad-tix: linear-gradient(135deg, #ffcf4a 0%, #ffb03b 45%, #ff6b4a 100%);
   --grad: linear-gradient(135deg, #d4ff3f 0%, #5cff7a 55%, #12e9a8 100%);
 }
 
@@ -32,8 +34,8 @@
   --color-mint: var(--mint);
   --color-pop: var(--pop);
   --color-pop-soft: var(--pop-soft);
-  --color-ice: var(--ice);
-  --color-ice-soft: var(--ice-soft);
+  --color-tix: var(--tix);
+  --color-tix-soft: var(--tix-soft);
   --font-display: var(--font-fredoka);
   --font-sans: var(--font-jakarta);
 }
@@ -51,6 +53,18 @@ body {
   overscroll-behavior: none;
 }
 
+/* Native dropdown + date pickers open in the dark scheme, not a white list */
+select,
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+}
+option {
+  background: var(--ink-2);
+  color: var(--cream);
+}
+
 .font-display {
   font-family: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
 }
@@ -63,6 +77,30 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Frosted glass — cards, header buttons, search, menus all share this */
+.glass {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 20px 60px -20px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  transition: background 0.15s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+button.glass:hover,
+a.glass:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+button.glass:active,
+a.glass:active {
+  transform: scale(0.96);
+}
+.glass-on {
+  background: var(--pop-soft);
+  border-color: rgba(92, 255, 122, 0.35);
 }
 
 /* Chunky primary button */
@@ -96,12 +134,16 @@ body {
 
 /* Pins */
 .pin {
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+}
+.pin-body {
   position: relative;
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
-  cursor: pointer;
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .pin svg {
@@ -116,12 +158,9 @@ body {
   opacity: 0;
   animation: flare 2.6s ease-out infinite;
 }
-.pin-event .pin-core {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2.5px solid var(--ice);
-  box-shadow: 0 0 0 2px var(--ink), 0 0 12px 0 rgba(237, 237, 245, 0.35);
+.pin-event svg {
+  filter: drop-shadow(0 0 10px rgba(255, 176, 59, 0.55));
+  animation: bob 3.1s ease-in-out infinite;
 }
 .pin-label {
   position: absolute;
@@ -146,7 +185,7 @@ body {
   color: var(--pop);
 }
 .pin-event .pin-label b {
-  color: var(--ice);
+  color: var(--tix);
 }
 .labels-on .pin-label {
   opacity: 1;
@@ -155,8 +194,10 @@ body {
   opacity: 0;
 }
 .pin.is-active {
-  transform: scale(1.3);
   z-index: 10;
+}
+.pin.is-active .pin-body {
+  transform: scale(1.3);
 }
 .pin.is-past {
   opacity: 0.35;
@@ -239,8 +280,13 @@ body {
 .maplibregl-ctrl-attrib a {
   color: var(--cream-3) !important;
 }
-.maplibregl-ctrl-bottom-right {
-  bottom: 24px !important;
+.maplibregl-ctrl-bottom-left {
+  bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  left: 8px !important;
+}
+.maplibregl-ctrl-attrib-button {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 999px !important;
 }
 
 /* Pin callout: line draws up, then the glass card blooms */
@@ -299,4 +345,78 @@ body {
     opacity: 1;
     transform: none;
   }
+}
+
+/* Living mascot: head tilt + blink; bubble pops in and out on a loop */
+.mascot-live {
+  transform-origin: 50% 80%;
+  animation: tilt 4.5s ease-in-out infinite;
+  filter: drop-shadow(0 8px 24px rgba(92, 255, 122, 0.45));
+}
+.mascot-live .eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.2s ease-in-out infinite;
+}
+.mascot-wrap {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+a:hover .mascot-wrap {
+  transform: scale(1.08);
+}
+a:active .mascot-wrap {
+  transform: scale(0.95);
+}
+.bubble {
+  transform-origin: 100% 100%;
+  animation: bubble 11s cubic-bezier(0.2, 0.9, 0.2, 1.1) infinite;
+}
+@keyframes tilt {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  20% {
+    transform: rotate(-9deg) translateY(-2px);
+  }
+  45% {
+    transform: rotate(0deg) translateY(0);
+  }
+  70% {
+    transform: rotate(8deg) translateY(-3px);
+  }
+}
+@keyframes blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  93% {
+    transform: scaleY(0.12);
+  }
+  96% {
+    transform: scaleY(1);
+  }
+}
+@keyframes bubble {
+  0%,
+  8% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+  14%,
+  55% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  62%,
+  100% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+}
+
+.bg-grad-tix {
+  background: var(--grad-tix);
 }

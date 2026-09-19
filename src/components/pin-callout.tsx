@@ -5,7 +5,7 @@ import type { Pin } from "@/lib/types";
 import type { Anchor } from "./map-canvas";
 import { when, km, distance } from "@/lib/format";
 import { Seats } from "./pin-card";
-import { Mascot } from "./brand";
+import { Mascot, Avatar } from "./brand";
 
 const LINE = 64; // px from pin centre up to the card
 const W = 300;
@@ -31,12 +31,12 @@ export default function PinCallout({ pin, anchor, origin, onClose }: Props) {
           y1={anchor.y - 18}
           x2={anchor.x}
           y2={anchor.y - LINE + 6}
-          stroke={isPopout ? "#5cff7a" : "#ededf5"}
+          stroke={isPopout ? "#5cff7a" : "#ffb03b"}
           strokeWidth="2"
           strokeLinecap="round"
           className="leader"
         />
-        <circle cx={anchor.x} cy={anchor.y - LINE + 6} r="3.5" fill={isPopout ? "#5cff7a" : "#ededf5"} className="leader-dot" />
+        <circle cx={anchor.x} cy={anchor.y - LINE + 6} r="3.5" fill={isPopout ? "#5cff7a" : "#ffb03b"} className="leader-dot" />
       </svg>
 
       <div
@@ -45,15 +45,15 @@ export default function PinCallout({ pin, anchor, origin, onClose }: Props) {
         role="dialog"
         aria-label={pin.title}
       >
-        <div className="rounded-[22px] border border-white/15 bg-white/[0.09] p-4 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-xl">
+        <div className="glass rounded-[22px] p-4">
           <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em]">
-            <span className={`inline-flex items-center gap-1.5 ${isPopout ? "text-pop" : "text-ice"}`}>
-              {isPopout && <Mascot size={14} glow={false} />}
+            <span className={`inline-flex items-center gap-1.5 ${isPopout ? "text-pop" : "text-tix"}`}>
+              {isPopout ? <Mascot size={14} glow={false} /> : <Mascot size={14} glow={false} tone="tix" />}
               {isPopout ? (pin.eventId ? "Crew" : "Popout") : "Event"}
             </span>
             <span className="flex items-center gap-3 text-cream-3">
               {distance(km(origin, pin))}
-              <button onClick={onClose} aria-label="Close" className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-cream hover:bg-white/20">
+              <button onClick={onClose} aria-label="Close" className="glass grid h-6 w-6 place-items-center rounded-full text-cream">
                 ×
               </button>
             </span>
@@ -70,17 +70,12 @@ export default function PinCallout({ pin, anchor, origin, onClose }: Props) {
                 <span className={full ? "text-cream-3" : "text-cream-2"}>{full ? "Full" : `${pin.max! - pin.filled!} left`}</span>
               </span>
             ) : (
-              <span className="font-semibold text-ice">{pin.price ?? "Free"}</span>
+              <span className="font-semibold text-tix">{pin.price ?? "Free"}</span>
             )}
           </div>
           {isPopout && pin.host && (
             <div className="mt-3 flex items-center gap-2 text-[12px] text-cream-2">
-              {pin.host.photo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={pin.host.photo} alt="" className="h-5 w-5 rounded-full object-cover" />
-              ) : (
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-pop-soft text-[10px] font-bold text-pop">{pin.host.name[0]}</span>
-              )}
+              <Avatar seed={pin.host.id} size={20} />
               <span>{pin.host.name.split(" ")[0]} is hosting</span>
             </div>
           )}
