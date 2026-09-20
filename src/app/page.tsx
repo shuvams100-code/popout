@@ -1,7 +1,6 @@
 import Explore from "@/components/explore";
 import { fetchPins } from "@/lib/pins";
 import { createClient, getViewer } from "@/lib/supabase/server";
-import { signInWithGoogle } from "./auth/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,5 +17,5 @@ export default async function Home() {
     me = { id: user.id, name: user.name, admin: admin === true, verified: !!prof?.verified_at, pending: !!prof?.selfie_submitted_at, unread: (unread as number | null) ?? 0 };
   }
 
-  return <Explore pins={pins} user={me} signIn={signInWithGoogle.bind(null, "/")} />;
+  return <Explore pins={pins} user={me} />;
 }

@@ -40,7 +40,7 @@ export default function SearchPanel({ pins, near, onPickPlace, onPickPin, onClos
     const id = ++seq.current;
     const t = setTimeout(async () => {
       setBusy(true);
-      const res = await geocode(query, near).catch(() => []);
+      const res = await geocode(query, near, 4, "anywhere").catch(() => []);
       if (id === seq.current) {
         setPlaces(res);
         setBusy(false);

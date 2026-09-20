@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SiteHeader from "@/components/site-header";
 import { Avatar, Mascot } from "@/components/brand";
 import { Seats } from "@/components/pin-card";
 import { when } from "@/lib/format";
 import { createClient, getViewer } from "@/lib/supabase/server";
-import { signInWithGoogle } from "@/app/auth/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,20 +12,7 @@ type Row = { id: string; title: string; venue: string; starts_at: string; status
 
 export default async function MinePage() {
   const user = await getViewer();
-  if (!user) {
-    return (
-      <main className="min-h-dvh bg-ink">
-        <SiteHeader />
-        <div className="mx-auto flex max-w-md flex-col items-center px-5 pt-16 text-center">
-          <Mascot size={80} live />
-          <h1 className="font-display mt-5 text-[26px] text-cream" style={{ fontWeight: 700 }}>Your Popouts live here</h1>
-          <form action={signInWithGoogle.bind(null, "/mine")} className="mt-6 w-full">
-            <button className="btn-pop w-full py-3.5 text-[16px]">Continue with Google</button>
-          </form>
-        </div>
-      </main>
-    );
-  }
+  if (!user) redirect("/welcome?next=%2Fmine");
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_popouts");
   const rows = (data ?? []) as Row[];

@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import SiteHeader from "@/components/site-header";
 import { whenLong } from "@/lib/format";
 import { createClient, getViewer } from "@/lib/supabase/server";
-import { signInWithGoogle } from "@/app/auth/actions";
 import { cache } from "react";
 import ShareButton from "@/components/share-button";
 import { Avatar, Verified } from "@/components/brand";
@@ -277,9 +276,9 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           ) : user ? (
             <JoinButtons popoutId={p.id} canPlusOne={canPlusOne} rulesAccepted={rulesAccepted} />
           ) : (
-            <form action={signInWithGoogle.bind(null, `/p/${p.id}`)} className="flex-1">
-              <button className="btn-pop h-12 w-full text-[16px]">Sign in to join</button>
-            </form>
+            <Link href={`/welcome?next=${encodeURIComponent(`/p/${p.id}`)}`} className="btn-pop flex h-12 flex-1 items-center justify-center text-[16px]">
+              Sign in to join
+            </Link>
           )}
         </div>
       </div>

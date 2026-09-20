@@ -11,8 +11,9 @@ export default async function Metrics() {
   const user = await getViewer();
   if (!user) notFound();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("kill_metrics");
+  const [{ data, error }, { data: demand }] = await Promise.all([supabase.rpc("kill_metrics"), supabase.rpc("launch_demand")]);
   if (error || !data) notFound();
+  const cities = (demand ?? []) as { city: string; requests: number; latest: string }[];
   const m = data as M;
   const total = m.women + m.men;
   const menShare = total ? Math.round((100 * m.men) / total) : null;
@@ -51,6 +52,23 @@ export default async function Metrics() {
             </li>
           ))}
         </ul>
+
+        <h2 className="font-display mt-10 text-[22px] text-cream" style={{ fontWeight: 700 }}>Asked for elsewhere</h2>
+        <p className="mt-1 text-[13px] text-cream-2">People outside Bangalore who tapped &ldquo;Yes, launch here&rdquo;.</p>
+        {cities.length === 0 ? (
+          <p className="mt-3 text-[13px] text-cream-3">Nobody yet.</p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {cities.map((c) => (
+              <li key={c.city} className="glass flex items-center justify-between rounded-[14px] px-4 py-2.5 text-[14px]">
+                <span className="text-cream">{c.city}</span>
+                <span className="text-cream-2">
+                  <b className="font-semibold text-pop">{c.requests}</b> · last {new Date(c.latest).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </main>
   );

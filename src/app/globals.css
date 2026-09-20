@@ -433,3 +433,57 @@ a:active .mascot-wrap {
     box-shadow: 0 0 0 6px rgba(255, 176, 59, 0);
   }
 }
+
+/* Reading pages */
+.prose-popout h1 {
+  font-family: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--cream);
+}
+.prose-popout h2 {
+  font-family: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 19px;
+  margin-top: 2rem;
+  color: var(--cream);
+}
+.prose-popout p,
+.prose-popout li {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--cream-2);
+  margin-top: 0.75rem;
+}
+.prose-popout ul {
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+.prose-popout li {
+  margin-top: 0.35rem;
+}
+.prose-popout b {
+  color: var(--cream);
+  font-weight: 600;
+}
+.prose-popout a {
+  color: var(--cream);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+.prose-popout .meta {
+  font-size: 12px;
+  color: var(--cream-3);
+  margin-top: 0.25rem;
+}
+.prose-popout .callout {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 176, 59, 0.1);
+  border: 1px solid rgba(255, 176, 59, 0.25);
+  font-size: 13px;
+  color: var(--cream-2);
+}

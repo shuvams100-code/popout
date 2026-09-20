@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Pin } from "@/lib/types";
-import { INDIRANAGAR } from "@/lib/types";
+import { INDIRANAGAR, SERVICE_AREA } from "@/lib/types";
+import { reverseGeocode } from "@/lib/geocode";
+import NotHere from "./not-here";
 import { km, distance, dayBucket } from "@/lib/format";
 import PinCallout from "./pin-callout";
 import SearchPanel, { type Place } from "./search-panel";
@@ -16,10 +18,9 @@ const MapCanvas = dynamic(() => import("./map-canvas"), { ssr: false });
 type Props = {
   pins: Pin[];
   user: { id: string; name: string; admin?: boolean; verified?: boolean; pending?: boolean; unread?: number } | null;
-  signIn: () => Promise<void>;
 };
 
-export default function Explore({ pins, user, signIn }: Props) {
+export default function Explore({ pins, user }: Props) {
   const [origin, setOrigin] = useState(INDIRANAGAR);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -27,12 +28,21 @@ export default function Explore({ pins, user, signIn }: Props) {
   const [search, setSearch] = useState(false);
   const [menu, setMenu] = useState(false);
   const [womenOnly, setWomenOnly] = useState(false);
+  const [away, setAway] = useState<{ city: string; lat: number; lng: number } | null>(null);
+  const inArea = (p: { lat: number; lng: number }) => km(p, SERVICE_AREA.center) <= SERVICE_AREA.radiusKm;
   const onAnchor = useCallback((a: Anchor | null) => setAnchor(a), []);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      async (pos) => {
+        const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setOrigin(here);
+        if (inArea(here)) return;
+        // Outside Bangalore: show where they are, and say so
+        const place = await reverseGeocode(here.lat, here.lng);
+        setAway({ city: place.city ?? place.name, ...here });
+      },
       () => {},
       { timeout: 6000, maximumAge: 300000 },
     );
@@ -53,10 +63,13 @@ export default function Explore({ pins, user, signIn }: Props) {
   const shown = womenOnly ? pins.filter((p) => p.kind === "event" || p.genderPref === "women_only" || p.host?.gender === "woman") : pins;
   const active = shown.find((p) => p.id === activeId) ?? null;
 
-  const goTo = (p: { name: string; lat: number; lng: number }) => {
+  const goTo = (p: { name: string; lat: number; lng: number; city?: string }) => {
     setActiveId(null);
-    setFocus({ lat: p.lat, lng: p.lng, n: Date.now(), name: p.name });
     setSearch(false);
+    setAway(null);
+    setFocus({ lat: p.lat, lng: p.lng, n: Date.now(), name: p.name });
+    // Fly there first so they see it; the card lands once the map has settled
+    if (!inArea(p)) setTimeout(() => setAway({ city: p.city ?? p.name, lat: p.lat, lng: p.lng }), 1300);
   };
 
   // What's around the searched area (≈3km), and the nearest pin if nothing is
@@ -70,6 +83,7 @@ export default function Explore({ pins, user, signIn }: Props) {
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
       <MapCanvas pins={shown} center={origin} activeId={activeId} onSelect={setActiveId} onAnchor={onAnchor} focus={focus} />
       {active && anchor && <PinCallout pin={active} anchor={anchor} origin={origin} onClose={() => setActiveId(null)} />}
+      {away && <NotHere city={away.city} lat={away.lat} lng={away.lng} signedIn={!!user} onClose={() => setAway(null)} />}
 
       {/* Dim the map while searching */}
       {search && <button type="button" aria-label="Close search" onClick={() => setSearch(false)} className="callout-fast absolute inset-0 z-10 bg-ink/60 backdrop-blur-[2px]" />}
@@ -153,9 +167,7 @@ export default function Explore({ pins, user, signIn }: Props) {
                 )}
               </Link>
             ) : (
-              <form action={signIn} className="flex">
-                <button className="glass flex h-10 items-center rounded-full px-4 text-[13px] font-semibold leading-none text-cream">Sign in</button>
-              </form>
+              <Link href="/welcome" className="glass flex h-10 items-center rounded-full px-4 text-[13px] font-semibold leading-none text-cream">Sign in</Link>
             )}
           </div>
         </div>
@@ -196,10 +208,21 @@ export default function Explore({ pins, user, signIn }: Props) {
                 {user.admin && <Link href="/admin" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-pop hover:bg-white/10">Admin</Link>}
               </>
             ) : (
-              <form action={signIn}>
-                <button className="block w-full rounded-[14px] px-3.5 py-2.5 text-left text-[14px] text-cream hover:bg-white/10">Sign in with Google</button>
-              </form>
+              <Link href="/welcome" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-cream hover:bg-white/10">Sign in</Link>
             )}
+            <div className="mx-2 my-1.5 border-t border-white/10" />
+            {[
+              ["/about", "About"],
+              ["/safety", "Safety"],
+              ["/guidelines", "Community guidelines"],
+              ["/terms", "Terms"],
+              ["/privacy", "Privacy"],
+              ["/contact", "Contact"],
+            ].map(([href, t]) => (
+              <Link key={href} href={href} className="block rounded-[14px] px-3.5 py-2 text-[13px] text-cream-2 hover:bg-white/10">
+                {t}
+              </Link>
+            ))}
           </nav>
         )}
       </header>

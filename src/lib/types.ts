@@ -21,6 +21,9 @@ export type Pin = {
 
 export const INDIRANAGAR = { lat: 12.9716, lng: 77.6412 };
 
+// ponytail: one city. Radius covers Whitefield to Kengeri with room; widen or add centres when a second city launches.
+export const SERVICE_AREA = { name: "Bangalore", center: { lat: 12.9716, lng: 77.5946 }, radiusKm: 45 };
+
 // ponytail: constant, not a column. Safety floor said 3; user chose 2.
 export const MIN_PEOPLE = 2;
 

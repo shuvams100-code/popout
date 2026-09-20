@@ -9,7 +9,13 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/"}`);
+    if (!error) {
+      const v = request.cookies.get("popout-terms")?.value;
+      if (v) await supabase.rpc("accept_terms", { v });
+      const res = NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/"}`);
+      res.cookies.delete("popout-terms");
+      return res;
+    }
   }
   return NextResponse.redirect(`${origin}/?auth=error`);
 }

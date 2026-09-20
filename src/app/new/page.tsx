@@ -5,30 +5,13 @@ import { Mascot } from "@/components/brand";
 import { createClient, getViewer } from "@/lib/supabase/server";
 import { ERRORS, toFormWhen } from "@/lib/popout-form";
 import { createPopout } from "./actions";
-import { signInWithGoogle } from "@/app/auth/actions";
 
 export default async function NewPopout({ searchParams }: { searchParams: Promise<{ event?: string; error?: string }> }) {
   const { event: eventId, error } = await searchParams;
   const supabase = await createClient();
   const user = await getViewer();
   const next = eventId ? `/new?event=${eventId}` : "/new";
-  if (!user) {
-    return (
-      <main className="min-h-dvh bg-ink">
-        <SiteHeader />
-        <div className="mx-auto flex max-w-md flex-col items-center px-5 pt-16 text-center">
-          <Mascot size={96} live />
-          <h1 className="font-display mt-6 text-[30px] leading-tight text-cream" style={{ fontWeight: 700 }}>
-            Sign in to start a Popout
-          </h1>
-          <p className="mt-2 text-[14px] text-cream-2">Google only. No phone number, no password. Takes five seconds.</p>
-          <form action={signInWithGoogle.bind(null, next)} className="mt-8 w-full">
-            <button className="btn-pop w-full py-3.5 text-[16px]">Continue with Google</button>
-          </form>
-        </div>
-      </main>
-    );
-  }
+  if (!user) redirect(`/welcome?next=${encodeURIComponent(next)}`);
   const { data: me } = await supabase.from("profiles").select("age,gender").eq("id", user.id).single();
   if (!me?.age || !me.gender) redirect(`/profile?next=${encodeURIComponent(next)}`);
 

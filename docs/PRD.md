@@ -1,7 +1,7 @@
 # Popout — Product Requirements (living doc)
 
 **Find something to do. Find someone to do it with.**
-Updated 2026-09-20 · supersedes `Popout-PRD.pdf` (2026-09-17) where they differ. The PDF holds the research and competitive analysis; this file holds the current product.
+Updated 2026-09-21 · supersedes `Popout-PRD.pdf` (2026-09-17) where they differ. The PDF holds the research and competitive analysis; this file holds the current product.
 
 ---
 
@@ -30,6 +30,8 @@ The bet is not discovery — three competitors already ship the map. The bet is 
 | Native app | Still no. **PWA**: manifest, icons, Add-to-Home-Screen nudge on iPhone. | Unlocks push on iOS without an app store. |
 | List view | Removed as a separate toggle. Search panel's "Happening soon" covers the location-denied case. | Simpler header on mobile. |
 | Map at launch | Kept, with principle 5 enforced: nearest-pin fallback, never empty. | |
+| Outside Bangalore | **Geofenced** (45 km): map still shows the place, then a "Not in X yet — want us there?" card. Every yes is logged by city. | Turns wrong-city traffic into an expansion signal instead of an empty map. |
+| Consent | Explicit tick on `/welcome` before Google, versioned on the profile. | DPDP wants an affirmative act; "by continuing" isn't one. |
 
 ## Principles (unchanged)
 
@@ -68,10 +70,20 @@ The bet is not discovery — three competitors already ship the map. The bet is 
 - **Host reliability** on cards before joining: "Hosted 12 · 0 no-shows" / "New host".
 - Women-only Popouts, verified-only Popouts, +1 joins, "Tell someone".
 
+### Geofence & expansion signal
+- Service area = 45 km around Bangalore centre (`SERVICE_AREA` in `types.ts`).
+- GPS or search outside it: map goes there, then a card — *Not in Mumbai yet. Popout is Bangalore-only right now.* → **Yes, launch here** (one tap signed in; email if not).
+- Map search ranks like Google: exact state/city/town match first, India before abroad, then local venues. Venue search in the create form stays local.
+- `launch_requests` table; **/admin/metrics → "Asked for elsewhere"** ranks cities by requests.
+
 ### Notifications
 - **Web Push** (VAPID, no vendor): new message, someone joined your Popout, selfie approved, still-coming at 3h, all-good check-in at +30 min, cancellation, selfie-to-review (admins). Postgres triggers → `pg_net` → `/api/push`.
 - Android Chrome: full. iPhone: after Add to Home Screen (nudge shown in Safari).
 - **My Popouts** (☰): upcoming / happened, last message, unread badges; ☰ dot when anything's unread.
+
+### Onboarding & legal
+- **`/welcome`** in front of every sign-in: what Popout is, three honest bullets, a required tick ("18+, agree to Terms, Privacy, Guidelines"), then Google. Acceptance versioned on the profile so a terms change re-prompts.
+- Pages in ☰: About · Safety (tappable helplines 112 / 1091 / 100 / 181 / 14416) · Community guidelines · Terms · Privacy (DPDP-shaped) · Contact (grievance officer block per IT Rules 2021). Placeholders for legal entity, address, officer name.
 
 ### Identity & profile
 - Google sign-in only. Profile: name, age, gender, area, one-line bio. **Generated mascot avatar** per user (144 variants), no photos.
@@ -90,6 +102,7 @@ The bet is not discovery — three competitors already ship the map. The bet is 
 - [ ] **Pick the cohort** (co-living operator vs employer) — PDF says this can't slip past M3, and it has.
 - [ ] **Seed 20 hosts at ~even gender split** before opening (PDF §13). This is a launch-sequencing decision, not code.
 - [ ] Custom domain (optional, but `popout-alpha.vercel.app` in a WhatsApp share looks temporary).
+- [ ] Fill legal placeholders (entity, address, grievance officer) and have a lawyer read Terms/Privacy once.
 
 ### Small product gaps — all closed 2026-09-20
 - [x] Events admin at `/admin/events` (add / remove; venue search + time picker).
@@ -120,10 +133,11 @@ All of these are answerable from `popout_members.status`, `popouts.host_id`, and
 ## Repo map
 
 ```
-src/app/            pages: / (map) · /new · /p/[id] · /p/[id]/edit · /e/[id] · /mine · /profile · /admin · /admin/events · /admin/metrics · /api/push
+src/app/            pages: / (map) · /welcome · /new · /p/[id] · /p/[id]/edit · /e/[id] · /mine · /profile · /admin · /admin/events · /admin/metrics
+                    (info)/: about · safety · guidelines · terms · privacy · contact · api/push · launch (actions)
 src/components/     explore (map shell) · map-canvas · pin-callout · search-panel · popout-social (going + chat + safety)
                     gate · thread · push-prompt · selfie-verify · join-buttons (rules) · popout-form · venue-field · when-field · select · brand
 src/lib/            supabase clients (local JWT verify) · pins (feed) · geocode (Photon) · avatar · format
-supabase/migrations 0001 init · 0002-3 removal/blocks · 0004 gate · 0005-6 verification · 0007 +1 · 0008 push · 0009 mine · 0010 cancel/rules/check-in/metrics
+supabase/migrations 0001 init · 0002-3 removal/blocks · 0004 gate · 0005-6 verification · 0007 +1 · 0008 push · 0009 mine · 0010 cancel/rules/check-in/metrics · 0011 terms · 0012 launch requests
 public/sw.js        service worker
 ```
