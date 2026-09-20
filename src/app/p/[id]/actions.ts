@@ -7,10 +7,11 @@ import { createClient, getViewer } from "@/lib/supabase/server";
 // Errors raised by join_popout() in Postgres → query param the page can explain
 const KNOWN = ["popout_not_open", "popout_started", "profile_incomplete", "not_eligible", "popout_full", "host_cannot_leave"];
 
-export async function joinPopout(id: string, plusOne = false) {
+export async function joinPopout(id: string, plusOne = false, acceptRules = false) {
   const supabase = await createClient();
   const user = await getViewer();
   if (!user) redirect(`/p/${id}`);
+  if (acceptRules) await supabase.rpc("accept_rules");
   const { error } = await supabase.rpc("join_popout", { p: id, plus_one: plusOne });
   if (error) {
     const code = KNOWN.find((k) => error.message.includes(k)) ?? "unknown";
@@ -83,4 +84,13 @@ export async function finishPopout(id: string) {
   revalidatePath(`/p/${id}`);
   revalidatePath("/");
   redirect(`/p/${id}?done=1`);
+}
+
+export async function cancelPopout(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_popout", { p: id });
+  if (error) redirect(`/p/${id}?error=unknown`);
+  revalidatePath(`/p/${id}`);
+  revalidatePath("/");
+  redirect(`/p/${id}?cancelled=1`);
 }

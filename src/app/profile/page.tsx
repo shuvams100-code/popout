@@ -6,6 +6,7 @@ import { saveProfile } from "./actions";
 import Select from "@/components/select";
 import { Avatar, Verified } from "@/components/brand";
 import SelfieVerify from "@/components/selfie-verify";
+import PushPrompt from "@/components/push-prompt";
 
 const ERRORS: Record<string, string> = {
   age: "Age must be between 18 and 99.",
@@ -94,6 +95,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
         <div className="reveal mt-8" style={{ animationDelay: "180ms" }}>
           <SelfieVerify userId={user.id} state={p?.verified_at ? "verified" : p?.selfie_submitted_at ? "pending" : "none"} />
+        </div>
+        <div className="reveal mt-4" style={{ animationDelay: "220ms" }}>
+          <PushPrompt userId={user.id} />
         </div>
 
         <form action={signOut} className="mt-10 text-center">

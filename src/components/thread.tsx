@@ -26,12 +26,14 @@ export default function Thread({ popoutId, me, names, verified, onReport }: Prop
       .order("created_at", { ascending: true })
       .limit(200)
       .then(({ data }) => alive && data && setMsgs(data));
+    supabase.rpc("mark_read", { p: popoutId }).then(() => {});
 
     const ch = supabase
       .channel(`thread:${popoutId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `popout_id=eq.${popoutId}` }, (payload) => {
         const m = payload.new as Msg;
         setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+        if (document.visibilityState === "visible") supabase.rpc("mark_read", { p: popoutId }).then(() => {});
       })
       .subscribe();
 

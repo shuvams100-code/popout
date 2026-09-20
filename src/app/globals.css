@@ -420,3 +420,16 @@ a:active .mascot-wrap {
 .bg-grad-tix {
   background: var(--grad-tix);
 }
+
+.pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 176, 59, 0.55);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(255, 176, 59, 0);
+  }
+}

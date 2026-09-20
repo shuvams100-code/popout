@@ -10,7 +10,9 @@ import ShareButton from "@/components/share-button";
 import { Avatar, Verified } from "@/components/brand";
 import PopoutSocial from "@/components/popout-social";
 import Gate from "@/components/gate";
-import { joinPopout, leavePopout } from "./actions";
+import JoinButtons from "@/components/join-buttons";
+import PushPrompt from "@/components/push-prompt";
+import { leavePopout, cancelPopout } from "./actions";
 
 const ERRORS: Record<string, string> = {
   popout_full: "Just filled up. Try another one nearby.",
@@ -21,7 +23,7 @@ const ERRORS: Record<string, string> = {
   unknown: "Couldn't do that. Try again.",
 };
 
-type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string; reported?: string; confirmed?: string; done?: string }> };
+type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string; reported?: string; confirmed?: string; done?: string; updated?: string; cancelled?: string; checkin?: string }> };
 
 // cache(): generateMetadata and the page share one query per request
 const load = cache(async (id: string) => {
@@ -61,13 +63,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function PopoutPage({ params, searchParams }: Params) {
   const { id } = await params;
-  const { created, joined, error, reported, confirmed, done } = await searchParams;
+  const { created, joined, error, reported, confirmed, done, updated, cancelled, checkin } = await searchParams;
   const p = await load(id);
   if (!p) notFound();
 
   const supabase = await createClient();
   const hostId = (p.host as unknown as { id: string }).id;
   const [user, { data: blockedIds }, stats] = await Promise.all([getViewer(), supabase.rpc("my_blocked_ids"), loadStats(hostId)]);
+  const { data: viewerProf } = user ? await supabase.from("profiles").select("rules_accepted_at").eq("id", user.id).maybeSingle() : { data: null };
+  const rulesAccepted = !!viewerProf?.rules_accepted_at;
   const reliable = stats.attended >= 3 && stats.no_shows === 0;
   if (((blockedIds as string[] | null) ?? []).includes(hostId)) {
     return (
@@ -119,6 +123,20 @@ export default async function PopoutPage({ params, searchParams }: Params) {
         {reported && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream-2">Thanks — we&apos;ve got the report and will look.</p>}
         {confirmed && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream">See you there. 🙌</p>}
         {done && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream">Closed. Attendance is on everyone&apos;s profile now.</p>}
+        {updated && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream">Saved.</p>}
+        {(cancelled || p.status === "cancelled") && <p className="glass mb-4 rounded-[14px] border-tix/30 px-3.5 py-2.5 text-[13px] text-cream">This Popout was cancelled by the host.</p>}
+        {checkin && user && mine && !isHost && (
+          <div className="glass reveal mb-5 rounded-[18px] p-4">
+            <p className="font-display text-[18px] text-cream" style={{ fontWeight: 600 }}>All good?</p>
+            <p className="mt-1 text-[13px] text-cream-2">If anything feels off, you can leave any time. No explanation needed.</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-[13px]">
+              <Link href={`/p/${p.id}`} className="btn-pop flex h-10 flex-1 items-center justify-center rounded-full px-4">All good 👍</Link>
+              <a href="tel:112" className="glass flex h-10 items-center rounded-full px-4 font-semibold text-tix">Call 112</a>
+              <a href="tel:1091" className="glass flex h-10 items-center rounded-full px-4 font-semibold text-tix">Women&apos;s helpline 1091</a>
+            </div>
+            <p className="mt-2 text-[12px] text-cream-3">To report or block the host, tap ··· next to Going.</p>
+          </div>
+        )}
         <p className="reveal mb-3 text-[11px] uppercase tracking-[0.14em] text-pop">{event ? "Crew" : "Popout"}</p>
         <h1 className="reveal font-display text-[36px] leading-[1.02] text-cream" style={{ fontWeight: 700, animationDelay: "60ms" }}>
           {p.title}
@@ -177,6 +195,15 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           </div>
         </section>
 
+        {isHost && p.status === "open" && (
+          <div className="reveal mt-3 flex gap-2 text-[13px]" style={{ animationDelay: "270ms" }}>
+            <Link href={`/p/${p.id}/edit`} className="glass flex h-9 items-center rounded-full px-4 font-semibold text-cream">Edit</Link>
+            <form action={cancelPopout.bind(null, p.id)}>
+              <button className="glass flex h-9 items-center rounded-full px-4 font-semibold text-tix">Cancel this Popout</button>
+            </form>
+          </div>
+        )}
+
         <Gate
           popoutId={p.id}
           startsAt={p.starts_at}
@@ -187,6 +214,12 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           isHost={isHost}
           now={p.now}
         />
+
+        {user && (mine || isHost) && (
+          <div className="reveal mt-6" style={{ animationDelay: "330ms" }}>
+            <PushPrompt userId={user.id} compact />
+          </div>
+        )}
 
         <PopoutSocial
           popoutId={p.id}
@@ -235,21 +268,14 @@ export default async function PopoutPage({ params, searchParams }: Params) {
             </>
           ) : p.status === "done" ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">This one&apos;s done</span>
+          ) : p.status === "cancelled" ? (
+            <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Cancelled</span>
           ) : started ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Already started</span>
           ) : full ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Full</span>
           ) : user ? (
-            <>
-              <form action={joinPopout.bind(null, p.id, false)} className="flex-1">
-                <button className="btn-pop h-12 w-full text-[16px]">Join</button>
-              </form>
-              {canPlusOne && (
-                <form action={joinPopout.bind(null, p.id, true)} className="flex-1">
-                  <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream" title="Take two seats — you and a friend">Join +1</button>
-                </form>
-              )}
-            </>
+            <JoinButtons popoutId={p.id} canPlusOne={canPlusOne} rulesAccepted={rulesAccepted} />
           ) : (
             <form action={signInWithGoogle.bind(null, `/p/${p.id}`)} className="flex-1">
               <button className="btn-pop h-12 w-full text-[16px]">Sign in to join</button>

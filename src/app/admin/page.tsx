@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import { Avatar } from "@/components/brand";
 import { createClient, getViewer } from "@/lib/supabase/server";
@@ -24,6 +25,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <main className="min-h-dvh bg-ink">
       <SiteHeader />
       <div className="mx-auto max-w-2xl px-5 pb-16 pt-4">
+        <div className="mb-4 flex gap-2 text-[13px]">
+          <Link href="/admin/events" className="glass flex h-9 items-center rounded-full px-4 font-semibold text-cream">Events</Link>
+          <Link href="/admin/metrics" className="glass flex h-9 items-center rounded-full px-4 font-semibold text-cream">Kill criteria</Link>
+        </div>
         <h1 className="font-display text-[30px] text-cream" style={{ fontWeight: 700 }}>
           Selfie queue
         </h1>

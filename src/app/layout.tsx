@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   title: { default: "Popout", template: "%s · Popout" },
   description: "Find something to do. Find someone to do it with.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  // iOS: installable to the Home Screen (needed there for push), full-screen with a dark status bar
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Popout" },
 };
 
 export const viewport: Viewport = {
