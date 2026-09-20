@@ -5,7 +5,7 @@ import type { Pin } from "@/lib/types";
 import type { Anchor } from "./map-canvas";
 import { when, km, distance } from "@/lib/format";
 import { Seats } from "./pin-card";
-import { Mascot, Avatar } from "./brand";
+import { Mascot, Avatar, Verified } from "./brand";
 
 const LINE = 64; // px from pin centre up to the card
 const W = 300;
@@ -76,7 +76,11 @@ export default function PinCallout({ pin, anchor, origin, onClose }: Props) {
           {isPopout && pin.host && (
             <div className="mt-3 flex items-center gap-2 text-[12px] text-cream-2">
               <Avatar seed={pin.host.id} size={20} />
-              <span>{pin.host.name.split(" ")[0]} is hosting</span>
+              <span className="inline-flex items-center gap-1">
+                {pin.host.name.split(" ")[0]} is hosting
+                {pin.host.verified && <Verified size={13} />}
+              </span>
+              {pin.verifiedOnly && <span className="ml-auto rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
             </div>
           )}
           <Link href={href} className="btn-pop mt-4 block py-2.5 text-center text-[15px]">

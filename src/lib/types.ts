@@ -9,7 +9,8 @@ export type Pin = {
   // popout
   filled?: number;
   max?: number;
-  host?: { id: string; name: string };
+  host?: { id: string; name: string; verified: boolean };
+  verifiedOnly?: boolean;
   eventId?: string | null;
   // event
   price?: string | null;

@@ -80,3 +80,19 @@ export function Wordmark({ size = 28, className = "" }: { size?: number; classNa
 export function Avatar({ seed, size = 40, className = "" }: { seed: string; size?: number; className?: string }) {
   return <span className={`inline-flex leading-none ${className}`} style={{ width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: avatarSvg(seed, size) }} />;
 }
+
+/** Small green tick for verified people; sits on an avatar's corner or inline. */
+export function Verified({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return (
+    <span
+      className={`inline-grid shrink-0 place-items-center rounded-full bg-pop text-ink ${className}`}
+      style={{ width: size, height: size }}
+      title="Face verified"
+      aria-label="Face verified"
+    >
+      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="m5 12 5 5L20 7" />
+      </svg>
+    </span>
+  );
+}

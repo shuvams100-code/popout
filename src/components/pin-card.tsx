@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Pin } from "@/lib/types";
 import { when, km, distance } from "@/lib/format";
-import { Mascot, Avatar } from "./brand";
+import { Mascot, Avatar, Verified } from "./brand";
 
 type Props = {
   pin: Pin;
@@ -65,7 +65,11 @@ export default function PinCard({ pin, origin, active, onFocus, wide }: Props) {
       {isPopout && pin.host && (
         <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-cream-2">
           <Avatar seed={pin.host.id} size={20} />
-          <span>{pin.host.name.split(" ")[0]} is hosting</span>
+          <span className="inline-flex items-center gap-1">
+            {pin.host.name.split(" ")[0]} is hosting
+            {pin.host.verified && <Verified size={13} />}
+          </span>
+          {pin.verifiedOnly && <span className="ml-auto rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
         </div>
       )}
     </Link>

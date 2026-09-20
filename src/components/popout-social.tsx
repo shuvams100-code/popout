@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar } from "./brand";
+import { Avatar, Verified } from "./brand";
 import { Seats } from "./pin-card";
 import Thread from "./thread";
 import { blockUser, removeMember, report } from "@/app/p/[id]/actions";
 
-type Person = { id: string; name: string };
+type Person = { id: string; name: string; verified?: boolean };
 type Target = { type: "profile" | "popout" | "message"; id: string; label: string; person?: Person };
 
 type Props = {
@@ -70,6 +70,7 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
               >
                 <Avatar seed={m.id} size={24} />
                 {m.name.split(" ")[0]}
+                {m.verified && <Verified size={13} />}
                 {m.id === host.id && <span className="rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Host</span>}
               </button>
             </li>

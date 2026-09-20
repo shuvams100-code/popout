@@ -7,7 +7,7 @@ import { createClient, getViewer } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
 import { cache } from "react";
 import ShareButton from "@/components/share-button";
-import { Avatar } from "@/components/brand";
+import { Avatar, Verified } from "@/components/brand";
 import PopoutSocial from "@/components/popout-social";
 import Gate from "@/components/gate";
 import { joinPopout, leavePopout } from "./actions";
@@ -17,6 +17,7 @@ const ERRORS: Record<string, string> = {
   popout_started: "This one already started.",
   popout_not_open: "This Popout isn't open any more.",
   not_eligible: "This one has an age or gender filter you don't match.",
+  not_verified: "This one is for face-verified people only. Verify from your profile — takes a minute.",
   unknown: "Couldn't do that. Try again.",
 };
 
@@ -28,7 +29,7 @@ const load = cache(async (id: string) => {
   const { data } = await supabase
     .from("popouts")
     .select(
-      "*, host:profiles!host_id(id,name,age,photo_url,bio), event:events(id,title,booking_url,price), members:popout_members(status,user:profiles(id,name,photo_url))",
+      "*, host:profiles!host_id(id,name,age,bio,verified_at), event:events(id,title,booking_url,price), members:popout_members(status,user:profiles(id,name,verified_at))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -77,8 +78,8 @@ export default async function PopoutPage({ params, searchParams }: Params) {
     );
   }
 
-  type Member = { status: string; user: { id: string; name: string; photo_url: string | null } };
-  const host = p.host as unknown as { id: string; name: string; age: number | null; photo_url: string | null; bio: string | null };
+  type Member = { status: string; user: { id: string; name: string; verified_at: string | null } };
+  const host = p.host as unknown as { id: string; name: string; age: number | null; bio: string | null; verified_at: string | null };
   const event = p.event as unknown as { id: string; title: string; booking_url: string | null; price: string | null } | null;
   const members = (p.members as unknown as Member[]).filter((m) => m.status !== "dropped" && m.status !== "removed");
   const filled = members.length;
@@ -92,6 +93,7 @@ export default async function PopoutPage({ params, searchParams }: Params) {
   const eligibility = [
     p.gender_pref === "women_only" ? "Women only" : p.gender_pref === "men_only" ? "Men only" : "Anyone",
     p.min_age || p.max_age ? `${p.min_age ?? 18}–${p.max_age ?? 99}` : null,
+    p.verified_only ? "face-verified only" : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -145,8 +147,9 @@ export default async function PopoutPage({ params, searchParams }: Params) {
 
         <section className="reveal mt-8 rounded-[22px] border border-line bg-ink-2 p-4" style={{ animationDelay: "240ms" }}>
           <div className="flex items-center gap-3">
-            <span className="glass grid h-12 w-12 place-items-center rounded-full">
+            <span className="glass relative grid h-12 w-12 place-items-center rounded-full">
               <Avatar seed={host.id} size={38} />
+              {host.verified_at && <Verified size={16} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-ink" />}
             </span>
             <div className="min-w-0">
               <p className="text-[15px] text-cream">
@@ -178,7 +181,7 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           popoutId={p.id}
           title={p.title}
           host={{ id: host.id, name: host.name }}
-          members={members.map((m) => ({ id: m.user.id, name: m.user.name }))}
+          members={members.map((m) => ({ id: m.user.id, name: m.user.name, verified: !!m.user.verified_at }))}
           max={p.max_people}
           me={user ? { id: user.id, name: user.name } : null}
           isHost={isHost}

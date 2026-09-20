@@ -26,6 +26,7 @@ export async function createPopout(formData: FormData) {
   const maxAge = Number(formData.get("max_age")) || null;
   const description = str(formData, "description", 280) || null;
   const eventId = str(formData, "event_id", 40) || null;
+  const verifiedOnly = formData.get("verified_only") === "on";
   const back = eventId ? `/new?event=${eventId}` : "/new";
 
   if (!title) redirect(`${back}&error=title`);
@@ -50,6 +51,7 @@ export async function createPopout(formData: FormData) {
       min_age: minAge,
       max_age: maxAge,
       description,
+      verified_only: verifiedOnly,
     })
     .select("id")
     .single();

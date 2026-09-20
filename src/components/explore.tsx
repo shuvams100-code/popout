@@ -15,7 +15,7 @@ const MapCanvas = dynamic(() => import("./map-canvas"), { ssr: false });
 
 type Props = {
   pins: Pin[];
-  user: { id: string; name: string } | null;
+  user: { id: string; name: string; admin?: boolean } | null;
   signIn: () => Promise<void>;
 };
 
@@ -159,6 +159,7 @@ export default function Explore({ pins, user, signIn }: Props) {
               <>
                 <Link href="/profile" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-cream hover:bg-white/10">Profile</Link>
                 <Link href="/new" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-cream hover:bg-white/10">Start a Popout</Link>
+                {user.admin && <Link href="/admin" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-pop hover:bg-white/10">Selfie queue</Link>}
               </>
             ) : (
               <form action={signIn}>

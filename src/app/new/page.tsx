@@ -145,6 +145,14 @@ export default async function NewPopout({ searchParams }: { searchParams: Promis
             <textarea name="description" maxLength={280} rows={2} placeholder="New to Bangalore. Come have coffee." className={`${field} resize-none`} />
           </label>
 
+          <label className="glass flex cursor-pointer items-center gap-3 rounded-[14px] px-3.5 py-3">
+            <input type="checkbox" name="verified_only" className="h-4 w-4 accent-[#5cff7a]" />
+            <span className="text-[14px] text-cream">
+              Face-verified people only
+              <span className="block text-[12px] text-cream-3">Only people who&apos;ve done the selfie check can join.</span>
+            </span>
+          </label>
+
           <p className="text-[12px] text-cream-3">Public places only. You&apos;re the host — you show up even if it&apos;s just one more person.</p>
 
           <button type="submit" className="btn-pop mt-1 py-3.5 text-[16px]">

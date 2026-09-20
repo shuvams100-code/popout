@@ -4,7 +4,8 @@ import { createClient, getViewer } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { saveProfile } from "./actions";
 import Select from "@/components/select";
-import { Avatar } from "@/components/brand";
+import { Avatar, Verified } from "@/components/brand";
+import SelfieVerify from "@/components/selfie-verify";
 
 const ERRORS: Record<string, string> = {
   age: "Age must be between 18 and 99.",
@@ -42,8 +43,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <form action={saveProfile} className="reveal mt-6 flex flex-col gap-4" style={{ animationDelay: "120ms" }}>
           <input type="hidden" name="next" value={next} />
           <div className="flex items-center gap-4">
-            <span className="glass grid h-20 w-20 place-items-center rounded-full">
+            <span className="glass relative grid h-20 w-20 place-items-center rounded-full">
               <Avatar seed={user.id} size={64} />
+              {p?.verified_at && <Verified size={22} className="absolute -bottom-0.5 -right-0.5 ring-[3px] ring-ink" />}
             </span>
             <div className="text-[13px] text-cream-3">
               <p>Your avatar. One of a kind, no photo needed.</p>
@@ -89,6 +91,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             Save
           </button>
         </form>
+
+        <div className="reveal mt-8" style={{ animationDelay: "180ms" }}>
+          <SelfieVerify userId={user.id} state={p?.verified_at ? "verified" : p?.selfie_submitted_at ? "pending" : "none"} />
+        </div>
 
         <form action={signOut} className="mt-10 text-center">
           <button type="submit" className="text-[13px] text-cream-3 underline underline-offset-4">Sign out</button>
