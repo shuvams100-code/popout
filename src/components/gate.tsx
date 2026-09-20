@@ -1,7 +1,7 @@
-import { Avatar } from "./brand";
+import { Avatar, Verified } from "./brand";
 import { confirmAttendance, finishPopout, leavePopout, markAttendance } from "@/app/p/[id]/actions";
 
-type Member = { id: string; name: string; status: string };
+type Member = { id: string; name: string; status: string; verified?: boolean };
 type Props = { popoutId: string; startsAt: string; status: string; members: Member[]; hostId: string; me: string | null; isHost: boolean; now: number };
 
 const GATE_MS = 3 * 3600000;
@@ -98,7 +98,10 @@ export default function Gate({ popoutId, startsAt, status, members, hostId, me, 
           {others.map((m) => (
             <li key={m.id} className="flex items-center gap-3">
               <Avatar seed={m.id} size={28} />
-              <span className="flex-1 text-[14px] text-cream">{m.name.split(" ")[0]}</span>
+              <span className="flex flex-1 items-center gap-1 text-[14px] text-cream">
+                {m.name.split(" ")[0]}
+                {m.verified && <Verified size={12} />}
+              </span>
               <form action={markAttendance.bind(null, popoutId, m.id, true)}>
                 <button className={`h-9 rounded-full px-3.5 text-[13px] font-semibold ${m.status === "attended" ? "btn-pop" : "glass text-cream"}`}>Came</button>
               </form>

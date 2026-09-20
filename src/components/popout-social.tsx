@@ -27,6 +27,7 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
   const [reporting, setReporting] = useState(false);
   const back = `/p/${popoutId}`;
   const names = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const verified = Object.fromEntries(members.map((m) => [m.id, !!m.verified]));
 
   const openPerson = (p: Person) => {
     if (!me || p.id === me.id) return;
@@ -91,6 +92,7 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
             popoutId={popoutId}
             me={me}
             names={names}
+            verified={verified}
             onReport={(m) => {
               setTarget({ type: "message", id: String(m.id), label: `"${m.body.slice(0, 40)}${m.body.length > 40 ? "…" : ""}"`, person: { id: m.user_id, name: names[m.user_id] ?? "Someone" } });
               setReporting(true);
@@ -105,7 +107,12 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
           <button type="button" aria-label="Close" onClick={() => setTarget(null)} className="callout-fast absolute inset-0 bg-ink/70 backdrop-blur-[2px]" />
           <div className="glass callout-fast relative w-full max-w-md rounded-t-[24px] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:rounded-[24px]">
             <div className="flex items-center gap-3 px-3 py-3">
-              {target.person && <Avatar seed={target.person.id} size={36} />}
+              {target.person && (
+                <span className="relative">
+                  <Avatar seed={target.person.id} size={36} />
+                  {target.person.verified && <Verified size={14} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-ink" />}
+                </span>
+              )}
               <div className="min-w-0">
                 <p className="truncate text-[15px] text-cream">{target.label}</p>
                 <p className="text-[12px] text-cream-3">{target.type === "profile" ? "Member" : target.type === "popout" ? "This Popout" : `Message from ${target.person?.name.split(" ")[0]}`}</p>

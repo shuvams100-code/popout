@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar } from "./brand";
+import { Avatar, Verified } from "./brand";
 
 type Msg = { id: number; user_id: string; sender_name: string | null; body: string; created_at: string };
-type Props = { popoutId: string; me: { id: string; name: string }; names: Record<string, string>; onReport: (m: Msg) => void };
+type Props = { popoutId: string; me: { id: string; name: string }; names: Record<string, string>; verified: Record<string, boolean>; onReport: (m: Msg) => void };
 
 const clock = (iso: string) => new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
 
 /** Members-only realtime thread. RLS decides who can read/post; this just renders and subscribes. */
-export default function Thread({ popoutId, me, names, onReport }: Props) {
+export default function Thread({ popoutId, me, names, verified, onReport }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -66,7 +66,12 @@ export default function Thread({ popoutId, me, names, onReport }: Props) {
             <div key={m.id} className={`group flex items-end gap-2 ${mine ? "flex-row-reverse" : ""}`}>
               {!mine && <Avatar seed={m.user_id} size={26} className="shrink-0" />}
               <div className={`max-w-[78%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
-                {!mine && <span className="mb-0.5 px-1 text-[11px] text-cream-3">{name.split(" ")[0]}</span>}
+                {!mine && (
+                  <span className="mb-0.5 inline-flex items-center gap-1 px-1 text-[11px] text-cream-3">
+                    {name.split(" ")[0]}
+                    {verified[m.user_id] && <Verified size={11} />}
+                  </span>
+                )}
                 <div className={`rounded-[18px] px-3.5 py-2 text-[14px] leading-snug ${mine ? "rounded-br-[6px] bg-grad text-ink" : "glass rounded-bl-[6px] text-cream"}`}>{m.body}</div>
                 <span className="mt-0.5 flex items-center gap-2 px-1 text-[10px] text-cream-3">
                   {clock(m.created_at)}

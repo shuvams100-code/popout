@@ -170,7 +170,7 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           popoutId={p.id}
           startsAt={p.starts_at}
           status={p.status}
-          members={members.map((m) => ({ id: m.user.id, name: m.user.name, status: m.status }))}
+          members={members.map((m) => ({ id: m.user.id, name: m.user.name, status: m.status, verified: !!m.user.verified_at }))}
           hostId={host.id}
           me={user?.id ?? null}
           isHost={isHost}

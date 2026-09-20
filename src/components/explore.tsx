@@ -8,14 +8,14 @@ import { INDIRANAGAR } from "@/lib/types";
 import { km, distance, dayBucket } from "@/lib/format";
 import PinCallout from "./pin-callout";
 import SearchPanel, { type Place } from "./search-panel";
-import { Mascot, Wordmark, Avatar } from "./brand";
+import { Mascot, Wordmark, Avatar, Verified } from "./brand";
 import type { Anchor } from "./map-canvas";
 
 const MapCanvas = dynamic(() => import("./map-canvas"), { ssr: false });
 
 type Props = {
   pins: Pin[];
-  user: { id: string; name: string; admin?: boolean } | null;
+  user: { id: string; name: string; admin?: boolean; verified?: boolean } | null;
   signIn: () => Promise<void>;
 };
 
@@ -119,8 +119,9 @@ export default function Explore({ pins, user, signIn }: Props) {
               </svg>
             </button>
             {user ? (
-              <Link href="/profile" aria-label="Profile" className="glass grid h-10 w-10 place-items-center rounded-full">
+              <Link href="/profile" aria-label="Profile" className="glass relative grid h-10 w-10 place-items-center rounded-full">
                 <Avatar seed={user.id} size={30} />
+                {user.verified && <Verified size={15} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-ink" />}
               </Link>
             ) : (
               <form action={signIn} className="flex">

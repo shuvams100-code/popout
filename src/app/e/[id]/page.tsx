@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "@/components/site-header";
 import { Seats } from "@/components/pin-card";
-import { Avatar } from "@/components/brand";
+import { Avatar, Verified } from "@/components/brand";
 import { whenLong } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,7 +15,7 @@ async function load(id: string) {
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("popouts")
-      .select("id,title,max_people,starts_at,host:profiles!host_id(id,name),members:popout_members(status)")
+      .select("id,title,max_people,starts_at,host:profiles!host_id(id,name,verified_at),members:popout_members(status)")
       .eq("event_id", id)
       .eq("status", "open")
       .order("starts_at"),
@@ -73,13 +73,14 @@ export default async function EventPage({ params }: Params) {
 
           <ul className="mt-4 flex flex-col gap-3">
             {crews.map((c) => {
-              const host = c.host as unknown as { id: string; name: string };
+              const host = c.host as unknown as { id: string; name: string; verified_at: string | null };
               const filled = (c.members as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
               return (
                 <li key={c.id}>
                   <Link href={`/p/${c.id}`} className="flex items-center gap-3 rounded-[22px] border border-line bg-ink-2 p-3 transition hover:border-line-strong">
-                    <span className="glass grid h-10 w-10 place-items-center rounded-full">
+                    <span className="glass relative grid h-10 w-10 place-items-center rounded-full">
                       <Avatar seed={host.id} size={30} />
+                      {host.verified_at && <Verified size={14} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-ink" />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] text-cream">{host.name.split(" ")[0]}&apos;s crew</p>
