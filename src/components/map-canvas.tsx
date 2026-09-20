@@ -95,6 +95,12 @@ export default function MapCanvas({ pins, center, activeId, onSelect, onAnchor, 
       darken(m);
     });
     m.on("click", () => cb.current.onSelect(null));
+    // A dropped tile is not an error worth a red overlay; MapLibre re-requests it on the next move
+    m.on("error", (e) => {
+      const err = e.error as { name?: string; message?: string; status?: number } | undefined;
+      if (err?.name === "AJAXError" || /Failed to fetch/.test(err?.message ?? "")) return;
+      console.warn("map:", err?.message ?? e);
+    });
     // Keep the card glued to the pin while the map moves
     m.on("move", () => {
       const { pins, activeId, onAnchor } = cb.current;
