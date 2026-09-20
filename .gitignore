@@ -42,3 +42,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# plugin-installed skills, not app code
+.claude/skills/
+.agents/
