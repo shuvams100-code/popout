@@ -83,7 +83,7 @@ export default function Explore({ pins, user }: Props) {
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
       <MapCanvas pins={shown} center={origin} activeId={activeId} onSelect={setActiveId} onAnchor={onAnchor} focus={focus} />
       {active && anchor && <PinCallout pin={active} anchor={anchor} origin={origin} onClose={() => setActiveId(null)} />}
-      {away && <NotHere city={away.city} lat={away.lat} lng={away.lng} signedIn={!!user} onClose={() => setAway(null)} />}
+      {away && <NotHere city={away.city} lat={away.lat} lng={away.lng} signedIn={!!user} via={user?.id} onClose={() => setAway(null)} />}
 
       {/* Dim the map while searching */}
       {search && <button type="button" aria-label="Close search" onClick={() => setSearch(false)} className="callout-fast absolute inset-0 z-10 bg-ink/60 backdrop-blur-[2px]" />}
@@ -210,6 +210,7 @@ export default function Explore({ pins, user }: Props) {
             ) : (
               <Link href="/welcome" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-cream hover:bg-white/10">Sign in</Link>
             )}
+            <Link href="/launch" className="block rounded-[14px] px-3.5 py-2.5 text-[14px] text-cream hover:bg-white/10">Launch in your city</Link>
             <div className="mx-2 my-1.5 border-t border-white/10" />
             {[
               ["/about", "About"],
