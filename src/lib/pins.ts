@@ -8,7 +8,7 @@ export async function fetchPins(): Promise<Pin[]> {
   const from = new Date(Date.now() - 60 * 60000).toISOString();
   const to = new Date(Date.now() + 3 * 86400000).toISOString();
 
-  const [{ data: popouts }, { data: events }] = await Promise.all([
+  const [{ data: popouts }, { data: events }, { data: blocked }] = await Promise.all([
     supabase
       .from("popouts")
       .select("id,title,venue,lat,lng,starts_at,max_people,event_id,host:profiles!host_id(id,name),members:popout_members(status)")
@@ -16,10 +16,14 @@ export async function fetchPins(): Promise<Pin[]> {
       .gte("starts_at", from)
       .order("starts_at"),
     supabase.from("events").select("id,title,venue,lat,lng,starts_at,price").gte("starts_at", from).order("starts_at"),
+    supabase.rpc("my_blocked_ids"),
   ]);
+  const hidden = new Set(((blocked as string[] | null) ?? []));
 
   const pins: Pin[] = [
-    ...(popouts ?? []).map((p) => ({
+    ...(popouts ?? [])
+      .filter((p) => !hidden.has((p.host as unknown as { id: string }).id))
+      .map((p) => ({
       kind: "popout" as const,
       id: p.id,
       title: p.title,
@@ -28,7 +32,7 @@ export async function fetchPins(): Promise<Pin[]> {
       lng: p.lng,
       startsAt: p.starts_at,
       max: p.max_people,
-      filled: (p.members as { status: string }[]).filter((m) => m.status !== "dropped").length,
+      filled: (p.members as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length,
       host: { id: (p.host as unknown as { id: string }).id, name: (p.host as unknown as { name: string }).name },
       eventId: p.event_id,
     })),

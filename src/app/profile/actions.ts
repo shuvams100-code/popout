@@ -1,11 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getViewer } from "@/lib/supabase/server";
 
 export async function saveProfile(formData: FormData) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) redirect("/");
 
   const age = Number(formData.get("age"));

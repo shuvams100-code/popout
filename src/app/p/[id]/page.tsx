@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "@/components/site-header";
-import { Seats } from "@/components/pin-card";
 import { whenLong } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getViewer } from "@/lib/supabase/server";
 import { signInWithGoogle } from "@/app/auth/actions";
+import { cache } from "react";
 import ShareButton from "@/components/share-button";
 import { Avatar } from "@/components/brand";
+import PopoutSocial from "@/components/popout-social";
+import Gate from "@/components/gate";
 import { joinPopout, leavePopout } from "./actions";
 
 const ERRORS: Record<string, string> = {
@@ -18,9 +20,10 @@ const ERRORS: Record<string, string> = {
   unknown: "Couldn't do that. Try again.",
 };
 
-type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string }> };
+type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string; reported?: string; confirmed?: string; done?: string }> };
 
-async function load(id: string) {
+// cache(): generateMetadata and the page share one query per request
+const load = cache(async (id: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("popouts")
@@ -29,15 +32,22 @@ async function load(id: string) {
     )
     .eq("id", id)
     .maybeSingle();
-  return data && { ...data, started: new Date(data.starts_at).getTime() < Date.now() };
-}
+  const now = Date.now();
+  return data && { ...data, now, started: new Date(data.starts_at).getTime() < now };
+});
+
+const loadStats = cache(async (id: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profile_stats").select("attended,no_shows,hosted").eq("id", id).maybeSingle();
+  return data ?? { attended: 0, no_shows: 0, hosted: 0 };
+});
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const p = await load(id);
   if (!p) return { title: "Popout" };
   const h = p.host as unknown as { name: string; age: number | null };
-  const n = (p.members as unknown as { status: string }[]).filter((m) => m.status !== "dropped").length;
+  const n = (p.members as unknown as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
   const left = p.max_people - n;
   const desc = `${whenLong(p.starts_at)} · ${p.venue} · ${h.name.split(" ")[0]}${h.age ? `, ${h.age}` : ""} is hosting · ${left > 0 ? `${left} seat${left === 1 ? "" : "s"} left` : "Full"}`;
   return {
@@ -50,17 +60,27 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function PopoutPage({ params, searchParams }: Params) {
   const { id } = await params;
-  const { created, joined, error } = await searchParams;
+  const { created, joined, error, reported, confirmed, done } = await searchParams;
   const p = await load(id);
   if (!p) notFound();
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const hostId = (p.host as unknown as { id: string }).id;
+  const [user, { data: blockedIds }, stats] = await Promise.all([getViewer(), supabase.rpc("my_blocked_ids"), loadStats(hostId)]);
+  const reliable = stats.attended >= 3 && stats.no_shows === 0;
+  if (((blockedIds as string[] | null) ?? []).includes(hostId)) {
+    return (
+      <main className="min-h-dvh bg-ink">
+        <SiteHeader />
+        <p className="mx-auto max-w-md px-5 pt-16 text-center text-[15px] text-cream-2">This Popout isn&apos;t available to you.</p>
+      </main>
+    );
+  }
 
   type Member = { status: string; user: { id: string; name: string; photo_url: string | null } };
   const host = p.host as unknown as { id: string; name: string; age: number | null; photo_url: string | null; bio: string | null };
   const event = p.event as unknown as { id: string; title: string; booking_url: string | null; price: string | null } | null;
-  const members = (p.members as unknown as Member[]).filter((m) => m.status !== "dropped");
+  const members = (p.members as unknown as Member[]).filter((m) => m.status !== "dropped" && m.status !== "removed");
   const filled = members.length;
   const full = filled >= p.max_people;
   const mine = members.some((m) => m.user.id === user?.id);
@@ -90,6 +110,9 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           </div>
         )}
         {error && <p className="mb-4 text-[13px] text-tix">{ERRORS[error] ?? ERRORS.unknown}</p>}
+        {reported && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream-2">Thanks — we&apos;ve got the report and will look.</p>}
+        {confirmed && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream">See you there. 🙌</p>}
+        {done && <p className="glass mb-4 rounded-[14px] px-3.5 py-2.5 text-[13px] text-cream">Closed. Attendance is on everyone&apos;s profile now.</p>}
         <p className="reveal mb-3 text-[11px] uppercase tracking-[0.14em] text-pop">{event ? "Crew" : "Popout"}</p>
         <h1 className="reveal font-display text-[36px] leading-[1.02] text-cream" style={{ fontWeight: 700, animationDelay: "60ms" }}>
           {p.title}
@@ -132,32 +155,35 @@ export default async function PopoutPage({ params, searchParams }: Params) {
                 <span className="ml-2 rounded-full bg-pop-soft px-2 py-0.5 text-[11px] text-pop">Host</span>
               </p>
               {host.bio && <p className="truncate text-[13px] text-cream-2">{host.bio}</p>}
+              <p className="mt-0.5 text-[12px] text-cream-3">
+                {stats.attended} attended · {stats.no_shows} no-show{stats.no_shows === 1 ? "" : "s"}
+                {reliable && <span className="ml-2 rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Reliable</span>}
+              </p>
             </div>
           </div>
         </section>
 
-        <section className="reveal mt-4" style={{ animationDelay: "300ms" }}>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[13px] uppercase tracking-[0.12em] text-cream-3">Going</h2>
-            <span className="flex items-center gap-2 text-[13px] text-cream-2">
-              <Seats filled={filled} max={p.max_people} />
-              {filled}/{p.max_people}
-            </span>
-          </div>
-          <ul className="flex flex-wrap gap-2">
-            {members.map((m) => (
-              <li key={m.user.id} className="flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-3 text-[13px] text-cream">
-                <Avatar seed={m.user.id} size={24} />
-                {m.user.name.split(" ")[0]}
-              </li>
-            ))}
-            {Array.from({ length: Math.max(0, p.max_people - filled) }).map((_, i) => (
-              <li key={`empty-${i}`} className="rounded-full border border-dashed border-line px-3 py-1 text-[13px] text-cream-3">
-                open seat
-              </li>
-            ))}
-          </ul>
-        </section>
+        <Gate
+          popoutId={p.id}
+          startsAt={p.starts_at}
+          status={p.status}
+          members={members.map((m) => ({ id: m.user.id, name: m.user.name, status: m.status }))}
+          hostId={host.id}
+          me={user?.id ?? null}
+          isHost={isHost}
+          now={p.now}
+        />
+
+        <PopoutSocial
+          popoutId={p.id}
+          title={p.title}
+          host={{ id: host.id, name: host.name }}
+          members={members.map((m) => ({ id: m.user.id, name: m.user.name }))}
+          max={p.max_people}
+          me={user ? { id: user.id, name: user.name } : null}
+          isHost={isHost}
+          isMember={mine}
+        />
 
         {event && (
           <section className="reveal mt-6 rounded-[22px] border border-tix/30 bg-tix-soft/60 p-4 text-[14px]" style={{ animationDelay: "360ms" }}>
@@ -189,6 +215,8 @@ export default async function PopoutPage({ params, searchParams }: Params) {
             <form action={leavePopout.bind(null, p.id)} className="flex-1">
               <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream">You&apos;re in · Leave</button>
             </form>
+          ) : p.status === "done" ? (
+            <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">This one&apos;s done</span>
           ) : started ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Already started</span>
           ) : full ? (

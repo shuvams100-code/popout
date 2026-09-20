@@ -38,7 +38,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   ]);
 
   const host = (p?.host as unknown as { id: string; name: string; age: number | null } | null) ?? { id: "x", name: "Someone", age: null };
-  const filled = ((p?.members as { status: string }[] | undefined) ?? []).filter((m) => m.status !== "dropped").length;
+  const filled = ((p?.members as { status: string }[] | undefined) ?? []).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
   const max = p?.max_people ?? 4;
   const crew = !!p?.event_id;
   const accent = crew ? "#FFB03B" : "#5CFF7A";

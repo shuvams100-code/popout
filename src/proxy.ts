@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getJwks } from "@/lib/supabase/jwks";
 
 // Refreshes the Supabase session cookie on every request so server components see a valid user.
 export async function proxy(request: NextRequest) {
@@ -18,7 +19,9 @@ export async function proxy(request: NextRequest) {
       },
     },
   );
-  await supabase.auth.getUser();
+  // getClaims verifies the JWT locally and refreshes the session cookie when it's near expiry — no auth round trip per request
+  const jwks = await getJwks();
+  await supabase.auth.getClaims(undefined, jwks ? { jwks: jwks as never } : undefined);
   return response;
 }
 

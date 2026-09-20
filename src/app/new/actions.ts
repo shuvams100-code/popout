@@ -1,14 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getViewer } from "@/lib/supabase/server";
 import { MIN_PEOPLE } from "@/lib/types";
 
 const str = (f: FormData, k: string, max: number) => String(f.get(k) ?? "").trim().slice(0, max);
 
 export async function createPopout(formData: FormData) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) redirect("/");
 
   const { data: me } = await supabase.from("profiles").select("age,gender").eq("id", user.id).single();

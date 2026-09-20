@@ -74,7 +74,7 @@ export default async function EventPage({ params }: Params) {
           <ul className="mt-4 flex flex-col gap-3">
             {crews.map((c) => {
               const host = c.host as unknown as { id: string; name: string };
-              const filled = (c.members as { status: string }[]).filter((m) => m.status !== "dropped").length;
+              const filled = (c.members as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
               return (
                 <li key={c.id}>
                   <Link href={`/p/${c.id}`} className="flex items-center gap-3 rounded-[22px] border border-line bg-ink-2 p-3 transition hover:border-line-strong">

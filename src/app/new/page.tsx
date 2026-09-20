@@ -4,7 +4,7 @@ import VenueField from "@/components/venue-field";
 import Select from "@/components/select";
 import WhenField from "@/components/when-field";
 import { Mascot } from "@/components/brand";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getViewer } from "@/lib/supabase/server";
 import { MIN_PEOPLE } from "@/lib/types";
 import { whenLong } from "@/lib/format";
 import { createPopout } from "./actions";
@@ -37,7 +37,7 @@ function defaultWhen(iso?: string) {
 export default async function NewPopout({ searchParams }: { searchParams: Promise<{ event?: string; error?: string }> }) {
   const { event: eventId, error } = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getViewer();
   const next = eventId ? `/new?event=${eventId}` : "/new";
   if (!user) {
     return (

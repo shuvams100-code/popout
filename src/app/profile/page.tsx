@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import SiteHeader from "@/components/site-header";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getViewer } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { saveProfile } from "./actions";
 import Select from "@/components/select";
@@ -18,9 +18,14 @@ const label = "flex flex-col gap-1.5 text-[12px] uppercase tracking-[0.12em] tex
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next = "/", error } = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getViewer();
   if (!user) redirect("/");
-  const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const [{ data: p }, { data: st }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase.from("profile_stats").select("attended,no_shows,hosted").eq("id", user.id).maybeSingle(),
+  ]);
+  const stats = st ?? { attended: 0, no_shows: 0, hosted: 0 };
+  const reliable = stats.attended >= 3 && stats.no_shows === 0;
 
   return (
     <main className="min-h-dvh bg-ink">
@@ -40,7 +45,13 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             <span className="glass grid h-20 w-20 place-items-center rounded-full">
               <Avatar seed={user.id} size={64} />
             </span>
-            <p className="text-[13px] text-cream-3">Your avatar. One of a kind, no photo needed.</p>
+            <div className="text-[13px] text-cream-3">
+              <p>Your avatar. One of a kind, no photo needed.</p>
+              <p className="mt-1.5 text-cream-2">
+                <b className="font-semibold text-cream">{stats.attended}</b> attended · <b className="font-semibold text-cream">{stats.no_shows}</b> no-shows · <b className="font-semibold text-cream">{stats.hosted}</b> hosted
+                {reliable && <span className="ml-2 rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Reliable</span>}
+              </p>
+            </div>
           </div>
           <label className={label}>
             Name
