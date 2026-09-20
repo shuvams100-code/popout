@@ -7,11 +7,11 @@ import { createClient, getViewer } from "@/lib/supabase/server";
 // Errors raised by join_popout() in Postgres → query param the page can explain
 const KNOWN = ["popout_not_open", "popout_started", "profile_incomplete", "not_eligible", "popout_full", "host_cannot_leave"];
 
-export async function joinPopout(id: string) {
+export async function joinPopout(id: string, plusOne = false) {
   const supabase = await createClient();
   const user = await getViewer();
   if (!user) redirect(`/p/${id}`);
-  const { error } = await supabase.rpc("join_popout", { p: id });
+  const { error } = await supabase.rpc("join_popout", { p: id, plus_one: plusOne });
   if (error) {
     const code = KNOWN.find((k) => error.message.includes(k)) ?? "unknown";
     if (code === "profile_incomplete") redirect(`/profile?next=${encodeURIComponent(`/p/${id}`)}`);

@@ -6,7 +6,7 @@ import { Seats } from "./pin-card";
 import Thread from "./thread";
 import { blockUser, removeMember, report } from "@/app/p/[id]/actions";
 
-type Person = { id: string; name: string; verified?: boolean };
+type Person = { id: string; name: string; verified?: boolean; plusOne?: boolean };
 type Target = { type: "profile" | "popout" | "message"; id: string; label: string; person?: Person };
 
 type Props = {
@@ -15,6 +15,7 @@ type Props = {
   host: Person;
   members: Person[]; // includes host
   max: number;
+  filled: number;
   me: Person | null;
   isHost: boolean;
   isMember: boolean;
@@ -22,7 +23,7 @@ type Props = {
 
 const REASONS = ["Didn't show up", "Harassment or creepy", "Fake or spam", "Felt unsafe", "Something else"];
 
-export default function PopoutSocial({ popoutId, title, host, members, max, me, isHost, isMember }: Props) {
+export default function PopoutSocial({ popoutId, title, host, members, max, filled, me, isHost, isMember }: Props) {
   const [target, setTarget] = useState<Target | null>(null);
   const [reporting, setReporting] = useState(false);
   const back = `/p/${popoutId}`;
@@ -43,8 +44,8 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
           <h2 className="text-[13px] uppercase tracking-[0.12em] text-cream-3">Going</h2>
           <span className="flex items-center gap-3 text-[13px] text-cream-2">
             <span className="flex items-center gap-2">
-              <Seats filled={members.length} max={max} />
-              {members.length}/{max}
+              <Seats filled={filled} max={max} />
+              {filled}/{max}
             </span>
             {me && (
               <button
@@ -72,11 +73,12 @@ export default function PopoutSocial({ popoutId, title, host, members, max, me, 
                 <Avatar seed={m.id} size={24} />
                 {m.name.split(" ")[0]}
                 {m.verified && <Verified size={13} />}
+                {m.plusOne && <span className="text-cream-3">+1</span>}
                 {m.id === host.id && <span className="rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Host</span>}
               </button>
             </li>
           ))}
-          {Array.from({ length: Math.max(0, max - members.length) }).map((_, i) => (
+          {Array.from({ length: Math.max(0, max - filled) }).map((_, i) => (
             <li key={`empty-${i}`} className="rounded-full border border-dashed border-line px-3 py-1 text-[13px] text-cream-3">
               open seat
             </li>

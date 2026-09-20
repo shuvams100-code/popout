@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Pin } from "@/lib/types";
 import type { Anchor } from "./map-canvas";
 import { when, km, distance } from "@/lib/format";
-import { Seats } from "./pin-card";
+import { Seats, WhosGoing, HostRep } from "./pin-card";
 import { Mascot, Avatar, Verified } from "./brand";
 
 const LINE = 64; // px from pin centre up to the card
@@ -76,11 +76,16 @@ export default function PinCallout({ pin, anchor, origin, onClose }: Props) {
           {isPopout && pin.host && (
             <div className="mt-3 flex items-center gap-2 text-[12px] text-cream-2">
               <Avatar seed={pin.host.id} size={20} />
-              <span className="inline-flex items-center gap-1">
-                {pin.host.name.split(" ")[0]} is hosting
-                {pin.host.verified && <Verified size={13} />}
+              <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                <span className="inline-flex items-center gap-1">
+                  {pin.host.name.split(" ")[0]} is hosting
+                  {pin.host.verified && <Verified size={13} />}
+                </span>
+                <span className="text-[11px]">
+                  <HostRep host={pin.host} /> {pin.women || pin.men || pin.genderPref === "women_only" ? <>· <WhosGoing pin={pin} /></> : null}
+                </span>
               </span>
-              {pin.verifiedOnly && <span className="ml-auto rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
+              {pin.verifiedOnly && <span className="rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
             </div>
           )}
           <Link href={href} className="btn-pop mt-4 block py-2.5 text-center text-[15px]">

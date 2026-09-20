@@ -31,14 +31,14 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const [{ data: p }, font] = await Promise.all([
     supabase
       .from("popouts")
-      .select("title,venue,starts_at,max_people,event_id,host:profiles!host_id(id,name,age),members:popout_members(status)")
+      .select("title,venue,starts_at,max_people,event_id,host:profiles!host_id(id,name,age),members:popout_members(status,plus_one)")
       .eq("id", id)
       .maybeSingle(),
     fredoka(),
   ]);
 
   const host = (p?.host as unknown as { id: string; name: string; age: number | null } | null) ?? { id: "x", name: "Someone", age: null };
-  const filled = ((p?.members as { status: string }[] | undefined) ?? []).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
+  const filled = ((p?.members as { status: string; plus_one: boolean }[] | undefined) ?? []).filter((m) => m.status !== "dropped" && m.status !== "removed").reduce((a, m) => a + (m.plus_one ? 2 : 1), 0);
   const max = p?.max_people ?? 4;
   const crew = !!p?.event_id;
   const accent = crew ? "#FFB03B" : "#5CFF7A";

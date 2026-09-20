@@ -26,6 +26,7 @@ export default function Explore({ pins, user, signIn }: Props) {
   const [focus, setFocus] = useState<{ lat: number; lng: number; n: number; name: string } | null>(null);
   const [search, setSearch] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [womenOnly, setWomenOnly] = useState(false);
   const onAnchor = useCallback((a: Anchor | null) => setAnchor(a), []);
 
   useEffect(() => {
@@ -48,7 +49,9 @@ export default function Explore({ pins, user, signIn }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const active = pins.find((p) => p.id === activeId) ?? null;
+  // Women-only map: women-only Popouts, women-hosted Popouts, plus events (they're venues, not people)
+  const shown = womenOnly ? pins.filter((p) => p.kind === "event" || p.genderPref === "women_only" || p.host?.gender === "woman") : pins;
+  const active = shown.find((p) => p.id === activeId) ?? null;
 
   const goTo = (p: { name: string; lat: number; lng: number }) => {
     setActiveId(null);
@@ -58,14 +61,14 @@ export default function Explore({ pins, user, signIn }: Props) {
 
   // What's around the searched area (≈3km), and the nearest pin if nothing is
   const NEAR_KM = 3;
-  const around = focus ? pins.filter((p) => km(focus, p) <= NEAR_KM) : [];
+  const around = focus ? shown.filter((p) => km(focus, p) <= NEAR_KM) : [];
   const tonight = around.filter((p) => dayBucket(p.startsAt) === "Today").length;
-  const nearest = focus && !around.length ? [...pins].sort((a, b) => km(focus, a) - km(focus, b))[0] : null;
+  const nearest = focus && !around.length ? [...shown].sort((a, b) => km(focus, a) - km(focus, b))[0] : null;
 
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
-      <MapCanvas pins={pins} center={origin} activeId={activeId} onSelect={setActiveId} onAnchor={onAnchor} focus={focus} />
+      <MapCanvas pins={shown} center={origin} activeId={activeId} onSelect={setActiveId} onAnchor={onAnchor} focus={focus} />
       {active && anchor && <PinCallout pin={active} anchor={anchor} origin={origin} onClose={() => setActiveId(null)} />}
 
       {/* Dim the map while searching */}
@@ -93,7 +96,7 @@ export default function Explore({ pins, user, signIn }: Props) {
 
           {search && (
             <SearchPanel
-              pins={pins}
+              pins={shown}
               near={origin}
               onPickPlace={(p: Place) => goTo(p)}
               onPickPin={(id) => {
@@ -106,6 +109,22 @@ export default function Explore({ pins, user, signIn }: Props) {
           )}
 
           <div className="reveal pointer-events-auto flex h-10 shrink-0 items-center gap-2" style={{ animationDelay: "80ms" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setWomenOnly((v) => !v);
+                setActiveId(null);
+              }}
+              aria-pressed={womenOnly}
+              title="Women-only and women-hosted Popouts"
+              className={`glass flex h-10 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold ${womenOnly ? "glass-on text-pop" : "text-cream"}`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="5" />
+                <path d="M12 13v8M9 18h6" />
+              </svg>
+              <span className="hidden sm:inline">Women</span>
+            </button>
             <button
               type="button"
               onClick={() => setSearch((v) => !v)}
@@ -187,9 +206,9 @@ export default function Explore({ pins, user, signIn }: Props) {
       </Link>
 
       {/* Empty state */}
-      {pins.length === 0 && (
+      {shown.length === 0 && (
         <div className="glass reveal absolute inset-x-4 bottom-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] z-20 flex items-center gap-3 rounded-[22px] p-4 text-[14px] text-cream-2">
-          <Mascot size={36} /> Nothing nearby yet. Be the first — start one.
+          <Mascot size={36} /> {womenOnly ? "No women-only Popouts yet. Start one — you set who joins." : "Nothing nearby yet. Be the first — start one."}
         </div>
       )}
 

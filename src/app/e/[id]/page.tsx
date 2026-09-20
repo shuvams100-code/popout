@@ -15,7 +15,7 @@ async function load(id: string) {
     supabase.from("events").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("popouts")
-      .select("id,title,max_people,starts_at,host:profiles!host_id(id,name,verified_at),members:popout_members(status)")
+      .select("id,title,max_people,starts_at,host:profiles!host_id(id,name,verified_at),members:popout_members(status,plus_one)")
       .eq("event_id", id)
       .eq("status", "open")
       .order("starts_at"),
@@ -74,7 +74,7 @@ export default async function EventPage({ params }: Params) {
           <ul className="mt-4 flex flex-col gap-3">
             {crews.map((c) => {
               const host = c.host as unknown as { id: string; name: string; verified_at: string | null };
-              const filled = (c.members as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
+              const filled = (c.members as { status: string; plus_one: boolean }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").reduce((a, m) => a + (m.plus_one ? 2 : 1), 0);
               return (
                 <li key={c.id}>
                   <Link href={`/p/${c.id}`} className="flex items-center gap-3 rounded-[22px] border border-line bg-ink-2 p-3 transition hover:border-line-strong">

@@ -23,6 +23,28 @@ export function Seats({ filled, max }: { filled: number; max: number }) {
   );
 }
 
+/** "2 women · 1 man" — the line a woman reads before deciding. */
+export function WhosGoing({ pin }: { pin: Pin }) {
+  if (pin.kind !== "popout") return null;
+  const parts: string[] = [];
+  if (pin.genderPref === "women_only") parts.push("Women only");
+  else {
+    if (pin.women) parts.push(`${pin.women} ${pin.women === 1 ? "woman" : "women"}`);
+    if (pin.men) parts.push(`${pin.men} ${pin.men === 1 ? "man" : "men"}`);
+  }
+  if (!parts.length) return null;
+  return <span className="text-cream-2">{parts.join(" · ")}</span>;
+}
+
+export function HostRep({ host }: { host: NonNullable<Pin["host"]> }) {
+  if (!host.hosted && !host.noShows) return <span className="text-cream-3">New host</span>;
+  return (
+    <span className="text-cream-3">
+      Hosted {host.hosted} · {host.noShows ? `${host.noShows} no-show${host.noShows === 1 ? "" : "s"}` : "0 no-shows"}
+    </span>
+  );
+}
+
 export default function PinCard({ pin, origin, active, onFocus, wide }: Props) {
   const href = pin.kind === "popout" ? `/p/${pin.id}` : `/e/${pin.id}`;
   const isPopout = pin.kind === "popout";
@@ -65,11 +87,16 @@ export default function PinCard({ pin, origin, active, onFocus, wide }: Props) {
       {isPopout && pin.host && (
         <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-cream-2">
           <Avatar seed={pin.host.id} size={20} />
-          <span className="inline-flex items-center gap-1">
-            {pin.host.name.split(" ")[0]} is hosting
-            {pin.host.verified && <Verified size={13} />}
+          <span className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="inline-flex items-center gap-1">
+              {pin.host.name.split(" ")[0]} is hosting
+              {pin.host.verified && <Verified size={13} />}
+            </span>
+            <span className="text-[11px]">
+              <HostRep host={pin.host} /> {pin.women || pin.men || pin.genderPref === "women_only" ? <>· <WhosGoing pin={pin} /></> : null}
+            </span>
           </span>
-          {pin.verifiedOnly && <span className="ml-auto rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
+          {pin.verifiedOnly && <span className="rounded-full bg-pop-soft px-1.5 py-0.5 text-[10px] font-semibold text-pop">Verified only</span>}
         </div>
       )}
     </Link>

@@ -9,8 +9,11 @@ export type Pin = {
   // popout
   filled?: number;
   max?: number;
-  host?: { id: string; name: string; verified: boolean };
+  host?: { id: string; name: string; verified: boolean; gender: string | null; hosted: number; noShows: number };
   verifiedOnly?: boolean;
+  genderPref?: "anyone" | "women_only" | "men_only";
+  women?: number; // members (incl. host) who are women
+  men?: number;
   eventId?: string | null;
   // event
   price?: string | null;

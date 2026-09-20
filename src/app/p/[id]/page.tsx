@@ -29,7 +29,7 @@ const load = cache(async (id: string) => {
   const { data } = await supabase
     .from("popouts")
     .select(
-      "*, host:profiles!host_id(id,name,age,bio,verified_at), event:events(id,title,booking_url,price), members:popout_members(status,user:profiles(id,name,verified_at))",
+      "*, host:profiles!host_id(id,name,age,bio,verified_at), event:events(id,title,booking_url,price), members:popout_members(status,plus_one,user:profiles(id,name,verified_at,gender))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const p = await load(id);
   if (!p) return { title: "Popout" };
   const h = p.host as unknown as { name: string; age: number | null };
-  const n = (p.members as unknown as { status: string }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").length;
+  const n = (p.members as unknown as { status: string; plus_one: boolean }[]).filter((m) => m.status !== "dropped" && m.status !== "removed").reduce((a, m) => a + (m.plus_one ? 2 : 1), 0);
   const left = p.max_people - n;
   const desc = `${whenLong(p.starts_at)} · ${p.venue} · ${h.name.split(" ")[0]}${h.age ? `, ${h.age}` : ""} is hosting · ${left > 0 ? `${left} seat${left === 1 ? "" : "s"} left` : "Full"}`;
   return {
@@ -78,17 +78,21 @@ export default async function PopoutPage({ params, searchParams }: Params) {
     );
   }
 
-  type Member = { status: string; user: { id: string; name: string; verified_at: string | null } };
+  type Member = { status: string; plus_one: boolean; user: { id: string; name: string; verified_at: string | null; gender: string | null } };
   const host = p.host as unknown as { id: string; name: string; age: number | null; bio: string | null; verified_at: string | null };
   const event = p.event as unknown as { id: string; title: string; booking_url: string | null; price: string | null } | null;
   const members = (p.members as unknown as Member[]).filter((m) => m.status !== "dropped" && m.status !== "removed");
-  const filled = members.length;
+  const filled = members.reduce((a, m) => a + (m.plus_one ? 2 : 1), 0);
   const full = filled >= p.max_people;
+  const canPlusOne = p.max_people - filled >= 2;
+  const women = members.filter((m) => m.user.gender === "woman").length;
+  const men = members.filter((m) => m.user.gender === "man").length;
   const mine = members.some((m) => m.user.id === user?.id);
   const isHost = user?.id === host.id;
   const started = p.started;
 
   const shareText = `${isHost ? "I'm" : `${host.name.split(" ")[0]} is`} doing "${p.title}" — ${whenLong(p.starts_at)}, ${p.venue}. Want to come?`;
+  const planText = `Heads up — I'm going to "${p.title}" at ${p.venue}, ${whenLong(p.starts_at)}. Hosted by ${host.name}${host.age ? `, ${host.age}` : ""} on Popout. Details:`;
 
   const eligibility = [
     p.gender_pref === "women_only" ? "Women only" : p.gender_pref === "men_only" ? "Men only" : "Anyone",
@@ -136,7 +140,14 @@ export default async function PopoutPage({ params, searchParams }: Params) {
             </a>
           </dd>
           <dt className="text-cream-3">Who</dt>
-          <dd className="text-cream">{eligibility}</dd>
+          <dd className="text-cream">
+            {eligibility}
+            {(women || men) && p.gender_pref !== "women_only" ? (
+              <span className="text-cream-3">
+                {" "}· so far {women ? `${women} ${women === 1 ? "woman" : "women"}` : ""}{women && men ? ", " : ""}{men ? `${men} ${men === 1 ? "man" : "men"}` : ""}
+              </span>
+            ) : null}
+          </dd>
         </dl>
 
         {p.description && (
@@ -181,8 +192,9 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           popoutId={p.id}
           title={p.title}
           host={{ id: host.id, name: host.name }}
-          members={members.map((m) => ({ id: m.user.id, name: m.user.name, verified: !!m.user.verified_at }))}
+          members={members.map((m) => ({ id: m.user.id, name: m.user.name, verified: !!m.user.verified_at, plusOne: m.plus_one }))}
           max={p.max_people}
+          filled={filled}
           me={user ? { id: user.id, name: user.name } : null}
           isHost={isHost}
           isMember={mine}
@@ -215,9 +227,12 @@ export default async function PopoutPage({ params, searchParams }: Params) {
               You&apos;re hosting · {filled}/{p.max_people}
             </span>
           ) : mine ? (
-            <form action={leavePopout.bind(null, p.id)} className="flex-1">
-              <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream">You&apos;re in · Leave</button>
-            </form>
+            <>
+              <ShareButton text={planText} path={`/p/${p.id}`} label="Tell someone" className="glass h-12 flex-1 rounded-full text-[14px] font-semibold text-cream" />
+              <form action={leavePopout.bind(null, p.id)} className="flex-1">
+                <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream">You&apos;re in · Leave</button>
+              </form>
+            </>
           ) : p.status === "done" ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">This one&apos;s done</span>
           ) : started ? (
@@ -225,9 +240,16 @@ export default async function PopoutPage({ params, searchParams }: Params) {
           ) : full ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Full</span>
           ) : user ? (
-            <form action={joinPopout.bind(null, p.id)} className="flex-1">
-              <button className="btn-pop h-12 w-full text-[16px]">Join</button>
-            </form>
+            <>
+              <form action={joinPopout.bind(null, p.id, false)} className="flex-1">
+                <button className="btn-pop h-12 w-full text-[16px]">Join</button>
+              </form>
+              {canPlusOne && (
+                <form action={joinPopout.bind(null, p.id, true)} className="flex-1">
+                  <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream" title="Take two seats — you and a friend">Join +1</button>
+                </form>
+              )}
+            </>
           ) : (
             <form action={signInWithGoogle.bind(null, `/p/${p.id}`)} className="flex-1">
               <button className="btn-pop h-12 w-full text-[16px]">Sign in to join</button>
