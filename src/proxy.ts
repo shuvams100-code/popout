@@ -22,6 +22,9 @@ export async function proxy(request: NextRequest) {
   // getClaims verifies the JWT locally and refreshes the session cookie when it's near expiry — no auth round trip per request
   const jwks = await getJwks();
   await supabase.auth.getClaims(undefined, jwks ? { jwks: jwks as never } : undefined);
+  // ?via=<user id> on a shared link: remembered 30 days; the OAuth callback stamps it on a new profile
+  const via = request.nextUrl.searchParams.get("via");
+  if (via && /^[0-9a-f-]{36}$/.test(via)) response.cookies.set("popout-via", via, { httpOnly: true, sameSite: "lax", maxAge: 30 * 86400, path: "/" });
   return response;
 }
 

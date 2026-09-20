@@ -4,7 +4,7 @@ import { useState } from "react";
 import { joinPopout } from "@/app/p/[id]/actions";
 import { Mascot } from "./brand";
 
-type Props = { popoutId: string; canPlusOne: boolean; rulesAccepted: boolean };
+type Props = { popoutId: string; canPlusOne: boolean; rulesAccepted: boolean; label?: string };
 
 const RULES: [string, string][] = [
   ["Public places only.", "Cafés, parks, venues. Never someone's home."],
@@ -14,7 +14,7 @@ const RULES: [string, string][] = [
 ];
 
 /** Join / Join +1. First time ever, a ground-rules sheet stands between the tap and the join. */
-export default function JoinButtons({ popoutId, canPlusOne, rulesAccepted }: Props) {
+export default function JoinButtons({ popoutId, canPlusOne, rulesAccepted, label = "Join" }: Props) {
   const [pending, setPending] = useState<null | boolean>(null); // plusOne choice awaiting rules
 
   const submit = async (plusOne: boolean) => {
@@ -25,7 +25,7 @@ export default function JoinButtons({ popoutId, canPlusOne, rulesAccepted }: Pro
   return (
     <>
       <form action={() => submit(false)} className="flex-1">
-        <button className="btn-pop h-12 w-full text-[16px]">Join</button>
+        <button className="btn-pop h-12 w-full text-[16px]">{label}</button>
       </form>
       {canPlusOne && (
         <form action={() => submit(true)} className="flex-1">

@@ -12,8 +12,11 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const v = request.cookies.get("popout-terms")?.value;
       if (v) await supabase.rpc("accept_terms", { v });
+      const via = request.cookies.get("popout-via")?.value;
+      if (via) await supabase.rpc("set_referrer", { r: via }); // no-op unless the profile is brand new
       const res = NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/"}`);
       res.cookies.delete("popout-terms");
+      res.cookies.delete("popout-via");
       return res;
     }
   }

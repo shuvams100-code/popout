@@ -11,10 +11,11 @@ export default async function Metrics() {
   const user = await getViewer();
   if (!user) notFound();
   const supabase = await createClient();
-  const [{ data, error }, { data: demand }] = await Promise.all([supabase.rpc("kill_metrics"), supabase.rpc("launch_demand")]);
+  const [{ data, error }, { data: demand }, { data: ref }] = await Promise.all([supabase.rpc("kill_metrics"), supabase.rpc("launch_demand"), supabase.rpc("referral_stats")]);
   if (error || !data) notFound();
   const cities = (demand ?? []) as { city: string; requests: number; latest: string }[];
   const m = data as M;
+  const r = (ref ?? { signups_7d: 0, referred_7d: 0, referrers: 0 }) as { signups_7d: number; referred_7d: number; referrers: number };
   const total = m.women + m.men;
   const menShare = total ? Math.round((100 * m.men) / total) : null;
 
@@ -25,6 +26,7 @@ export default async function Metrics() {
     { label: "Popouts created by others, last 7 days", value: String(m.created_by_others_7d), target: "3 / week", kill: "< 3", red: m.created_by_others_7d < 3, note: "Product, or a service the founder performs." },
     { label: "Repeat hosts (not founder)", value: String(m.repeat_hosts), target: "5", kill: "< 3", red: m.repeat_hosts < 3, note: "The compounding asset." },
     { label: "Gender ratio of attendees (men)", value: menShare === null ? "—" : `${menShare}:${100 - menShare}`, target: "≤ 65:35", kill: "> 75:25", red: menShare === null ? null : menShare > 75, note: "Leading indicator of collapse." },
+    { label: "Sign-ups from shared links, last 7 days", value: `${r.referred_7d} of ${r.signups_7d}`, target: "≥ 50%", kill: "—", red: null, note: `${r.referrers} people have brought someone in. Is the share loop working.` },
     { label: "Founder-hosted share, last 8 weeks", value: m.founder_share === null ? "—" : `${m.founder_share}%`, target: "< 50%", kill: "> 50%", red: m.founder_share === null ? null : m.founder_share > 50, note: "No organic supply." },
   ];
   const reds = rows.filter((r) => r.red === true).length;

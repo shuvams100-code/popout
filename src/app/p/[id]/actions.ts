@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient, getViewer } from "@/lib/supabase/server";
@@ -12,7 +13,9 @@ export async function joinPopout(id: string, plusOne = false, acceptRules = fals
   const user = await getViewer();
   if (!user) redirect(`/p/${id}`);
   if (acceptRules) await supabase.rpc("accept_rules");
-  const { error } = await supabase.rpc("join_popout", { p: id, plus_one: plusOne });
+  // ponytail: whoever shared the link with me (popout-via cookie, set in proxy.ts) may be holding a +1 seat here — take it
+  const claim_from = (await cookies()).get("popout-via")?.value ?? null;
+  const { error } = await supabase.rpc("join_popout", { p: id, plus_one: plusOne, claim_from });
   if (error) {
     const code = KNOWN.find((k) => error.message.includes(k)) ?? "unknown";
     if (code === "profile_incomplete") redirect(`/profile?next=${encodeURIComponent(`/p/${id}`)}`);

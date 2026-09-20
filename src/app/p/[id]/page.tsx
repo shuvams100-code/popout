@@ -5,6 +5,7 @@ import SiteHeader from "@/components/site-header";
 import { whenLong } from "@/lib/format";
 import { createClient, getViewer } from "@/lib/supabase/server";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import ShareButton from "@/components/share-button";
 import { Avatar, Verified } from "@/components/brand";
 import PopoutSocial from "@/components/popout-social";
@@ -22,7 +23,7 @@ const ERRORS: Record<string, string> = {
   unknown: "Couldn't do that. Try again.",
 };
 
-type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string; reported?: string; confirmed?: string; done?: string; updated?: string; cancelled?: string; checkin?: string }> };
+type Params = { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; joined?: string; error?: string; reported?: string; confirmed?: string; done?: string; updated?: string; cancelled?: string; checkin?: string; fill?: string }> };
 
 // cache(): generateMetadata and the page share one query per request
 const load = cache(async (id: string) => {
@@ -56,13 +57,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: p.title,
     description: desc,
     openGraph: { title: p.title, description: desc, type: "website", siteName: "Popout" },
-    twitter: { card: "summary", title: p.title, description: desc },
+    twitter: { card: "summary_large_image", title: p.title, description: desc },
   };
 }
 
 export default async function PopoutPage({ params, searchParams }: Params) {
   const { id } = await params;
-  const { created, joined, error, reported, confirmed, done, updated, cancelled, checkin } = await searchParams;
+  const { created, joined, error, reported, confirmed, done, updated, cancelled, checkin, fill } = await searchParams;
   const p = await load(id);
   if (!p) notFound();
 
@@ -93,8 +94,15 @@ export default async function PopoutPage({ params, searchParams }: Params) {
   const mine = members.some((m) => m.user.id === user?.id);
   const isHost = user?.id === host.id;
   const started = p.started;
+  // +1 loop: I hold a seat for a friend / the person who shared this with me is holding one for me
+  const myPlusOne = !!user && members.some((m) => m.user.id === user.id && m.plus_one);
+  const via = (await cookies()).get("popout-via")?.value;
+  const savedBy = !mine && via && via !== user?.id ? members.find((m) => m.plus_one && m.user.id === via)?.user : undefined;
 
   const shareText = `${isHost ? "I'm" : `${host.name.split(" ")[0]} is`} doing "${p.title}" — ${whenLong(p.starts_at)}, ${p.venue}. Want to come?`;
+  const seatText = `I saved you a seat for "${p.title}" — ${whenLong(p.starts_at)}, ${p.venue}. Tap to take it:`;
+  const openSeats = p.max_people - filled;
+  const fillText = `Anyone free? "${p.title}" — ${whenLong(p.starts_at)}, ${p.venue}. ${openSeats} seat${openSeats === 1 ? "" : "s"} left, just tap to join:`;
   const planText = `Heads up — I'm going to "${p.title}" at ${p.venue}, ${whenLong(p.starts_at)}. Hosted by ${host.name}${host.age ? `, ${host.age}` : ""} on Popout. Details:`;
 
   const eligibility = [
@@ -109,13 +117,31 @@ export default async function PopoutPage({ params, searchParams }: Params) {
     <main className="min-h-dvh bg-ink">
       <SiteHeader />
       <article className="mx-auto max-w-md px-5 pb-32 pt-6">
-        {(created || joined) && (
+        {myPlusOne && p.status === "open" && !started ? (
+          <div className="glass reveal mb-5 flex items-center gap-3 rounded-[18px] p-3.5 text-[14px] text-cream">
+            <span className="text-[20px]">🪑</span>
+            <span className="flex-1">You&apos;re holding a seat for your +1. Send it to them — it becomes theirs when they open it.</span>
+            <ShareButton text={seatText} path={`/p/${p.id}`} via={user?.id} label="Send seat" className="btn-pop shrink-0 px-4 py-2 text-[14px]" />
+          </div>
+        ) : fill && isHost && openSeats > 0 && p.status === "open" && !started ? (
+          <div className="glass reveal mb-5 flex items-center gap-3 rounded-[18px] border-pop/40 p-3.5 text-[14px] text-cream">
+            <span className="text-[20px]">📣</span>
+            <span className="flex-1">{openSeats} seat{openSeats === 1 ? "" : "s"} still open. Drop it in a group — it fills faster from people you know.</span>
+            <ShareButton text={fillText} path={`/p/${p.id}`} via={user?.id} label="Share" className="btn-pop shrink-0 px-4 py-2 text-[14px]" />
+          </div>
+        ) : (created || joined) ? (
           <div className="glass reveal mb-5 flex items-center gap-3 rounded-[18px] p-3.5 text-[14px] text-cream">
             <span className="text-[20px]">🎉</span>
             <span className="flex-1">
               {created ? "It's live. Share it so it fills up." : "You're in. Bring a friend?"}
             </span>
-            <ShareButton text={shareText} path={`/p/${p.id}`} label="Share" className="btn-pop shrink-0 px-4 py-2 text-[14px]" />
+            <ShareButton text={shareText} path={`/p/${p.id}`} via={user?.id} label="Share" className="btn-pop shrink-0 px-4 py-2 text-[14px]" />
+          </div>
+        ) : null}
+        {savedBy && p.status === "open" && !started && (
+          <div className="glass reveal mb-5 flex items-center gap-3 rounded-[18px] border-pop/40 p-3.5 text-[14px] text-cream">
+            <Avatar seed={savedBy.id} size={32} />
+            <span className="flex-1">{savedBy.name.split(" ")[0]} saved you a seat here. {user ? "Take it below." : "Sign in to take it."}</span>
           </div>
         )}
         {error && <p className="mb-4 text-[13px] text-tix">{ERRORS[error] ?? ERRORS.unknown}</p>}
@@ -253,14 +279,14 @@ export default async function PopoutPage({ params, searchParams }: Params) {
       {/* Primary action */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-ink/85 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2">
-          <ShareButton text={shareText} path={`/p/${p.id}`} className="glass h-12 shrink-0 rounded-full px-4 text-[14px] font-semibold text-cream" />
+          <ShareButton text={shareText} path={`/p/${p.id}`} via={user?.id} className="glass h-12 shrink-0 rounded-full px-4 text-[14px] font-semibold text-cream" />
           {isHost ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-2">
               You&apos;re hosting · {filled}/{p.max_people}
             </span>
           ) : mine ? (
             <>
-              <ShareButton text={planText} path={`/p/${p.id}`} label="Tell someone" className="glass h-12 flex-1 rounded-full text-[14px] font-semibold text-cream" />
+              <ShareButton text={planText} path={`/p/${p.id}`} via={user?.id} label="Tell someone" className="glass h-12 flex-1 rounded-full text-[14px] font-semibold text-cream" />
               <form action={leavePopout.bind(null, p.id)} className="flex-1">
                 <button className="glass h-12 w-full rounded-full text-[14px] font-semibold text-cream">You&apos;re in · Leave</button>
               </form>
@@ -271,10 +297,10 @@ export default async function PopoutPage({ params, searchParams }: Params) {
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Cancelled</span>
           ) : started ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Already started</span>
-          ) : full ? (
+          ) : full && !savedBy ? (
             <span className="glass flex h-12 flex-1 items-center justify-center rounded-full text-[14px] text-cream-3">Full</span>
           ) : user ? (
-            <JoinButtons popoutId={p.id} canPlusOne={canPlusOne} rulesAccepted={rulesAccepted} />
+            <JoinButtons popoutId={p.id} canPlusOne={canPlusOne && !savedBy} rulesAccepted={rulesAccepted} label={savedBy ? "Take your seat" : "Join"} />
           ) : (
             <Link href={`/welcome?next=${encodeURIComponent(`/p/${p.id}`)}`} className="btn-pop flex h-12 flex-1 items-center justify-center text-[16px]">
               Sign in to join

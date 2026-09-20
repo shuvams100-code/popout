@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 
-type Props = { text: string; path: string; className?: string; label?: string };
+type Props = { text: string; path: string; via?: string | null; className?: string; label?: string };
 
-/** Native share sheet where it exists (phones), WhatsApp deep link otherwise, copy as last resort. */
-export default function ShareButton({ text, path, className = "", label = "Share" }: Props) {
+/** Native share sheet where it exists (phones), WhatsApp deep link otherwise, copy as last resort. `via` = who shared, for attribution. */
+export default function ShareButton({ text, path, via, className = "", label = "Share" }: Props) {
   const [copied, setCopied] = useState(false);
   const share = async () => {
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${path}${via ? `?via=${via}` : ""}`;
     if (navigator.share) {
       try {
         await navigator.share({ text: `${text} ${url}` });
